@@ -2,7 +2,7 @@
 
 **GroupAffect-4 Devkit: Target Construction, Augmentation, Preprocessing, and Temporal Modeling for Physiological Affect Sensing**
 
-> Meisam Jamshidi Idaji · [paper](paper/arxiv/) · [dataset](https://zenodo.org/records/XXXXXXX) · Python 3.10+
+> Meisam Jamshidi Seikavandi · CogniSense Lab, GN Hearing · [paper](paper/arxiv/) · [dataset](https://zenodo.org/records/XXXXXXX) · Python 3.10+
 
 ---
 
@@ -144,7 +144,7 @@ If you use this dataset or devkit in your research, please cite:
 @misc{groupaffect4devkit2026,
   title   = {{GroupAffect-4 Devkit}: Target Construction, Augmentation,
              Preprocessing, and Temporal Modeling for Physiological Affect Sensing},
-  author  = {Jamshidi Idaji, Meisam},
+  author  = {Jamshidi Seikavandi, Meisam},
   year    = {2026},
   url     = {https://github.com/meisamjam/groupaffect4-devkit},
   note    = {arXiv preprint}
