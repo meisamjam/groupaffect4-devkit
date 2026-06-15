@@ -1,0 +1,25 @@
+# Large raw/processed datasets are not versioned in Git.
+data/
+affectai-data-processing-seed/data/
+
+# Python/local runtime artifacts.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+
+# Generated logs and local run outputs.
+logs/
+*.log
+*_log.txt
+*_err.txt
+*_out.txt
+
+# LaTeX/PDF build artifacts.
+*.aux
+*.bbl
+*.blg
+*.out
+*.synctex.gz
+*.pdf

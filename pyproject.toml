@@ -1,0 +1,40 @@
+[project]
+name = "affectai-capture"
+version = "0.1.0"
+description = "AffectAI multimodal data collection scaffolding (protocol-driven)."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "pydantic>=2.7",
+  "pyyaml>=6.0",
+  "pandas>=2.1",
+]
+
+[project.optional-dependencies]
+lsl = ["pylsl>=1.16"]
+video = ["opencv-python>=4.8"]
+mediapipe = ["mediapipe>=0.10"]
+pose-backbones = [
+  "mediapipe>=0.10",
+  "torch>=2.1",
+  "mmpose>=1.3",
+]
+audio = ["sounddevice>=0.4.6", "soundfile>=0.12"]
+gui = ["PySide6>=6.6", "pyqtgraph>=0.13", "av>=11.0", "sounddevice>=0.4.6", "soundfile>=0.12"]
+freemocap = ["freemocap>=1.3.0"]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.5",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude = ["tools/DataStream SDK/**"]
+
+[tool.ruff.lint]
+select = ["E","F","I","UP","B"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

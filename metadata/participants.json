@@ -1,0 +1,175 @@
+{
+  "participant_id": {
+    "Description": "Unique participant identifier (anonymised, globally unique across all sessions)"
+  },
+  "session_name": {
+    "Description": "Full name as recorded in session metadata. INTERNAL USE ONLY â€” remove this column before any public data release."
+  },
+  "age": {
+    "Description": "Self-reported age in years (integer). 51 of 56 respondents entered an exact numeric age (col 7 of the questionnaire). 5 early respondents used a dropdown band (col 8); for these, the band midpoint is stored (e.g. '25-34' â†’ 29). Participants not in the questionnaire are set to n/a.",
+    "Units": "years"
+  },
+  "sex": {
+    "Description": "Self-reported biological sex (from pre-session questionnaire)",
+    "Levels": {
+      "male": "Male",
+      "female": "Female",
+      "n/a": "Not available"
+    }
+  },
+  "handedness": {
+    "Description": "Self-reported dominant hand (from pre-session questionnaire)",
+    "Levels": {
+      "right": "Right-handed",
+      "left": "Left-handed",
+      "ambidextrous": "Ambidextrous",
+      "n/a": "Not available"
+    }
+  },
+  "english_proficiency": {
+    "Description": "Self-reported English language proficiency (from pre-session questionnaire)",
+    "Levels": {
+      "Native speaker": "Native speaker",
+      "Fluent": "Fluent non-native speaker",
+      "Intermediate": "Intermediate proficiency",
+      "n/a": "Not available"
+    }
+  },
+  "education": {
+    "Description": "Self-reported highest education level (from pre-session questionnaire)",
+    "Levels": {
+      "phd": "PhD / Doctorate",
+      "master": "Master's degree",
+      "bachelor": "Bachelor's degree",
+      "professional_certificate": "Professional Certificate / Higher Professional Diploma",
+      "graduate_certificate": "Graduate Certificate",
+      "ap": "AP (Erhvervsakademiuddannelse)",
+      "n/a": "Not available"
+    }
+  },
+  "bfi44_e": {
+    "Description": "BFI-44 Extraversion domain: mean Likert score across 8 items (1=Strongly disagree â€¦ 5=Strongly agree, after reverse scoring). Higher = more extraverted.",
+    "TermURL": "https://doi.org/10.1006/jrpe.1999.2257",
+    "Units": "mean Likert score",
+    "Range": [
+      1.0,
+      5.0
+    ],
+    "Items": [
+      1,
+      6,
+      11,
+      16,
+      21,
+      26,
+      31,
+      36
+    ],
+    "ReversedItems": [
+      6,
+      21,
+      31
+    ]
+  },
+  "bfi44_a": {
+    "Description": "BFI-44 Agreeableness domain: mean Likert score across 9 items. Higher = more agreeable.",
+    "TermURL": "https://doi.org/10.1006/jrpe.1999.2257",
+    "Units": "mean Likert score",
+    "Range": [
+      1.0,
+      5.0
+    ],
+    "Items": [
+      2,
+      7,
+      12,
+      17,
+      22,
+      27,
+      32,
+      37,
+      42
+    ],
+    "ReversedItems": [
+      2,
+      12,
+      27,
+      37
+    ]
+  },
+  "bfi44_c": {
+    "Description": "BFI-44 Conscientiousness domain: mean Likert score across 9 items. Higher = more conscientious.",
+    "TermURL": "https://doi.org/10.1006/jrpe.1999.2257",
+    "Units": "mean Likert score",
+    "Range": [
+      1.0,
+      5.0
+    ],
+    "Items": [
+      3,
+      8,
+      13,
+      18,
+      23,
+      28,
+      33,
+      38,
+      43
+    ],
+    "ReversedItems": [
+      8,
+      18,
+      23,
+      43
+    ]
+  },
+  "bfi44_n": {
+    "Description": "BFI-44 Neuroticism domain: mean Likert score across 8 items. Higher = higher neurotic tendency.",
+    "TermURL": "https://doi.org/10.1006/jrpe.1999.2257",
+    "Units": "mean Likert score",
+    "Range": [
+      1.0,
+      5.0
+    ],
+    "Items": [
+      4,
+      9,
+      14,
+      19,
+      24,
+      29,
+      34,
+      39
+    ],
+    "ReversedItems": [
+      9,
+      24,
+      34
+    ]
+  },
+  "bfi44_o": {
+    "Description": "BFI-44 Openness domain: mean Likert score across 10 items. Higher = more open to experience.",
+    "TermURL": "https://doi.org/10.1006/jrpe.1999.2257",
+    "Units": "mean Likert score",
+    "Range": [
+      1.0,
+      5.0
+    ],
+    "Items": [
+      5,
+      10,
+      15,
+      20,
+      25,
+      30,
+      35,
+      40,
+      41,
+      44
+    ],
+    "ReversedItems": [
+      35,
+      41
+    ]
+  }
+}

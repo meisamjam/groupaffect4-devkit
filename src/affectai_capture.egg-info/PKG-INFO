@@ -1,0 +1,33 @@
+Metadata-Version: 2.4
+Name: affectai-capture
+Version: 0.1.0
+Summary: AffectAI multimodal data collection scaffolding (protocol-driven).
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: pydantic>=2.7
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: pandas>=2.1
+Provides-Extra: lsl
+Requires-Dist: pylsl>=1.16; extra == "lsl"
+Provides-Extra: video
+Requires-Dist: opencv-python>=4.8; extra == "video"
+Provides-Extra: mediapipe
+Requires-Dist: mediapipe>=0.10; extra == "mediapipe"
+Provides-Extra: pose-backbones
+Requires-Dist: mediapipe>=0.10; extra == "pose-backbones"
+Requires-Dist: torch>=2.1; extra == "pose-backbones"
+Requires-Dist: mmpose>=1.3; extra == "pose-backbones"
+Provides-Extra: audio
+Requires-Dist: sounddevice>=0.4.6; extra == "audio"
+Requires-Dist: soundfile>=0.12; extra == "audio"
+Provides-Extra: gui
+Requires-Dist: PySide6>=6.6; extra == "gui"
+Requires-Dist: pyqtgraph>=0.13; extra == "gui"
+Requires-Dist: av>=11.0; extra == "gui"
+Requires-Dist: sounddevice>=0.4.6; extra == "gui"
+Requires-Dist: soundfile>=0.12; extra == "gui"
+Provides-Extra: freemocap
+Requires-Dist: freemocap>=1.3.0; extra == "freemocap"
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: ruff>=0.5; extra == "dev"

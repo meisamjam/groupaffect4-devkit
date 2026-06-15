@@ -1,0 +1,369 @@
+{
+  "metadata": {
+    "source_directory": "C:\\Users\\meisa\\Documents\\Tobii",
+    "date_range": {
+      "start": "2026-03-11",
+      "end": "2026-03-20"
+    },
+    "total_recordings": 55,
+    "total_groups": 11,
+    "device_type": "Tobii Glasses 3"
+  },
+  "devices": [
+    {
+      "id": "P1",
+      "serial": "TG03B-080201022801",
+      "device_type": "Tobii Glasses 3"
+    },
+    {
+      "id": "P2",
+      "serial": "TG03B-080201129491",
+      "device_type": "Tobii Glasses 3"
+    },
+    {
+      "id": "P3",
+      "serial": "TG03B-080201020821",
+      "device_type": "Tobii Glasses 3"
+    },
+    {
+      "id": "P4",
+      "serial": "TG03B-080201139301",
+      "device_type": "Tobii Glasses 3"
+    }
+  ],
+  "groups": [
+    {
+      "group_id": "grp-06",
+      "date": "2026-03-11",
+      "session_start_time": "13:00",
+      "session_end_time": "14:10",
+      "recordings": [
+        {
+          "participant": "P1",
+          "device_serial": "TG03B-080201022801",
+          "folder_name": "26-03-11_130950_Untitled"
+        },
+        {
+          "participant": "P2",
+          "device_serial": "TG03B-080201129491",
+          "folder_name": "26-03-11_131002_Untitled"
+        },
+        {
+          "participant": "P3",
+          "device_serial": "TG03B-080201020821",
+          "folder_name": null,
+          "note": "No recording available"
+        },
+        {
+          "participant": "P4",
+          "device_serial": "TG03B-080201139301",
+          "folder_name": "26-03-11_131016_Untitled"
+        }
+      ]
+    },
+    {
+      "group_id": "grp-07",
+      "date": "2026-03-12",
+      "session_start_time": "13:00",
+      "session_end_time": "14:10",
+      "recordings": [
+        {
+          "participant": "P1",
+          "device_serial": "TG03B-080201022801",
+          "folder_names": ["20260312T121359Z"]
+        },
+        {
+          "participant": "P2",
+          "device_serial": "TG03B-080201129491",
+          "folder_names": ["26-03-12_131430_2", "26-03-12_131753_Untitled"],
+          "note": "Multiple recordings"
+        },
+        {
+          "participant": "P3",
+          "device_serial": "TG03B-080201020821",
+          "folder_names": ["26-03-12_131413_Untitled"]
+        },
+        {
+          "participant": "P4",
+          "device_serial": "TG03B-080201139301",
+          "folder_names": ["26-03-12_131443_4"]
+        }
+      ]
+    },
+    {
+      "group_id": "grp-08",
+      "date": "2026-03-13",
+      "session_start_time": "10:00",
+      "session_end_time": "11:10",
+      "recordings": [
+        {
+          "participant": "P1",
+          "device_serial": "TG03B-080201022801",
+          "folder_names": ["26-03-13_100942_Untitled"]
+        },
+        {
+          "participant": "P2",
+          "device_serial": "TG03B-080201129491",
+          "folder_names": ["26-03-13_100934_Untitled"]
+        },
+        {
+          "participant": "P3",
+          "device_serial": "TG03B-080201020821",
+          "folder_names": ["26-03-13_100952_Untitled"]
+        },
+        {
+          "participant": "P4",
+          "device_serial": "TG03B-080201139301",
+          "folder_names": ["20260313T090918Z"]
+        }
+      ]
+    },
+    {
+      "group_id": "grp-09",
+      "date": "2026-03-17",
+      "session_start_time": "13:00",
+      "session_end_time": "14:10",
+      "recordings": [
+        {
+          "participant": "P1",
+          "device_serial": "TG03B-080201022801",
+          "folder_names": ["26-03-17_131353_Untitled"]
+        },
+        {
+          "participant": "P2",
+          "device_serial": "TG03B-080201129491",
+          "folder_names": ["26-03-17_131404_Untitled"]
+        },
+        {
+          "participant": "P3",
+          "device_serial": "TG03B-080201020821",
+          "folder_names": ["26-03-17_131333_Untitled", "26-03-17_133100_Untitled"],
+          "note": "Multiple recordings"
+        },
+        {
+          "participant": "P4",
+          "device_serial": "TG03B-080201139301",
+          "folder_names": ["26-03-17_131414_Untitled"]
+        }
+      ]
+    },
+    {
+      "group_id": "grp-10",
+      "date": "2026-03-17",
+      "session_start_time": "15:00",
+      "session_end_time": "16:10",
+      "recordings": [
+        {
+          "participant": "P1",
+          "device_serial": "TG03B-080201022801",
+          "folder_names": ["26-03-17_151110_Untitled"]
+        },
+        {
+          "participant": "P2",
+          "device_serial": "TG03B-080201129491",
+          "folder_names": ["26-03-17_151054_Untitled", "26-03-17_154923_Untitled"],
+          "note": "Multiple recordings"
+        },
+        {
+          "participant": "P3",
+          "device_serial": "TG03B-080201020821",
+          "folder_names": ["26-03-17_151124_Untitled"]
+        },
+        {
+          "participant": "P4",
+          "device_serial": "TG03B-080201139301",
+          "folder_names": ["26-03-17_151135_Untitled"]
+        }
+      ]
+    },
+    {
+      "group_id": "grp-11",
+      "date": "2026-03-18",
+      "session_start_time": "10:00",
+      "session_end_time": "11:10",
+      "recordings": [
+        {
+          "participant": "P1",
+          "device_serial": "TG03B-080201022801",
+          "folder_names": ["26-03-18_101829_Untitled"]
+        },
+        {
+          "participant": "P2",
+          "device_serial": "TG03B-080201129491",
+          "folder_names": ["20260318T091453Z", "26-03-18_101452_Untitled"],
+          "note": "Multiple recordings"
+        },
+        {
+          "participant": "P3",
+          "device_serial": "TG03B-080201020821",
+          "folder_names": ["26-03-18_101844_Untitled"]
+        },
+        {
+          "participant": "P4",
+          "device_serial": "TG03B-080201139301",
+          "folder_names": ["26-03-18_101927_Untitled"]
+        }
+      ]
+    },
+    {
+      "group_id": "grp-12",
+      "date": "2026-03-18",
+      "session_start_time": "13:00",
+      "session_end_time": "14:10",
+      "recordings": [
+        {
+          "participant": "P1",
+          "device_serial": "TG03B-080201022801",
+          "folder_names": ["20260318T120928Z"]
+        },
+        {
+          "participant": "P2",
+          "device_serial": "TG03B-080201129491",
+          "folder_names": ["20260318T121038Z", "26-03-18_131037_Untitled"],
+          "note": "Multiple recordings"
+        },
+        {
+          "participant": "P3",
+          "device_serial": "TG03B-080201020821",
+          "folder_names": ["20260318T120912Z"]
+        },
+        {
+          "participant": "P4",
+          "device_serial": "TG03B-080201139301",
+          "folder_names": ["26-03-18_131047_Untitled"]
+        }
+      ]
+    },
+    {
+      "group_id": "grp-13",
+      "date": "2026-03-18",
+      "session_start_time": "15:00",
+      "session_end_time": "16:10",
+      "recordings": [
+        {
+          "participant": "P1",
+          "device_serial": "TG03B-080201022801",
+          "folder_names": ["26-03-18_151155_Untitled"]
+        },
+        {
+          "participant": "P2",
+          "device_serial": "TG03B-080201129491",
+          "folder_names": ["20260318T141209Z", "26-03-18_151209_Untitled"],
+          "note": "Multiple recordings"
+        },
+        {
+          "participant": "P3",
+          "device_serial": "TG03B-080201020821",
+          "folder_names": ["26-03-18_151141_Untitled"]
+        },
+        {
+          "participant": "P4",
+          "device_serial": "TG03B-080201139301",
+          "folder_names": ["26-03-18_151357_Untitled", "26-03-18_151241_Untitled"],
+          "note": "Multiple recordings"
+        }
+      ]
+    },
+    {
+      "group_id": "grp-14",
+      "date": "2026-03-19",
+      "session_start_time": "10:00",
+      "session_end_time": "11:10",
+      "recordings": [
+        {
+          "participant": "P1",
+          "device_serial": "TG03B-080201022801",
+          "folder_names": ["26-03-19_100654_Untitled"]
+        },
+        {
+          "participant": "P2",
+          "device_serial": "TG03B-080201129491",
+          "folder_names": ["26-03-19_100711_Untitled", "20260319T090711Z"],
+          "note": "Multiple recordings"
+        },
+        {
+          "participant": "P3",
+          "device_serial": "TG03B-080201020821",
+          "folder_names": ["26-03-19_100611_Untitled"]
+        },
+        {
+          "participant": "P4",
+          "device_serial": "TG03B-080201139301",
+          "folder_names": ["26-03-19_100724_Untitled"]
+        }
+      ]
+    },
+    {
+      "group_id": "grp-15",
+      "date": "2026-03-19",
+      "session_start_time": "13:00",
+      "session_end_time": "14:10",
+      "recordings": [
+        {
+          "participant": "P1",
+          "device_serial": "TG03B-080201022801",
+          "folder_names": ["26-03-19_130544_Untitled", "26-03-19_131504_Untitled"],
+          "note": "Multiple recordings"
+        },
+        {
+          "participant": "P2",
+          "device_serial": "TG03B-080201129491",
+          "folder_names": ["20260319T121512Z", "20260319T120614Z"],
+          "note": "Multiple recordings"
+        },
+        {
+          "participant": "P3",
+          "device_serial": "TG03B-080201020821",
+          "folder_names": ["26-03-19_131454_Untitled", "26-03-19_130525_Untitled"],
+          "note": "Multiple recordings"
+        },
+        {
+          "participant": "P4",
+          "device_serial": "TG03B-080201139301",
+          "folder_names": ["26-03-19_130633_Untitled", "26-03-19_131518_Untitled"],
+          "note": "Multiple recordings"
+        }
+      ]
+    },
+    {
+      "group_id": "grp-16",
+      "date": "2026-03-20",
+      "session_start_time": "10:00",
+      "session_end_time": "11:10",
+      "recordings": [
+        {
+          "participant": "P1",
+          "device_serial": "TG03B-080201022801",
+          "folder_names": ["20260320T090912Z"]
+        },
+        {
+          "participant": "P2",
+          "device_serial": "TG03B-080201129491",
+          "folder_names": ["20260320T090924Z"]
+        },
+        {
+          "participant": "P3",
+          "device_serial": "TG03B-080201020821",
+          "folder_names": ["20260320T090859Z"]
+        },
+        {
+          "participant": "P4",
+          "device_serial": "TG03B-080201139301",
+          "folder_names": ["20260320T090947Z"]
+        }
+      ]
+    }
+  ],
+  "statistics": {
+    "total_groups": 11,
+    "total_recordings": 55,
+    "groups_with_multiple_recordings_per_participant": 7,
+    "missing_recordings": {
+      "grp-06": ["P3"]
+    },
+    "recording_folder_contents": {
+      "meta_directory": ["participant", "RuSerial", "HuSerial", "RuVersion"],
+      "data_files": ["recording.g3", "scenevideo.mp4", "gazedata.gz", "imudata.gz", "eventdata.gz", "snap0.jpg"]
+    }
+  }
+}

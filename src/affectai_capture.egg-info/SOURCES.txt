@@ -1,0 +1,17 @@
+pyproject.toml
+src/affectai_capture/__init__.py
+src/affectai_capture.egg-info/PKG-INFO
+src/affectai_capture.egg-info/SOURCES.txt
+src/affectai_capture.egg-info/dependency_links.txt
+src/affectai_capture.egg-info/requires.txt
+src/affectai_capture.egg-info/top_level.txt
+src/affectai_capture/devices/freemocap_processor.py
+tests/test_annotation_gui.py
+tests/test_calibrate_charuco.py
+tests/test_extract_video_features.py
+tests/test_freemocap.py
+tests/test_multisource_to_bids_runs.py
+tests/test_offline_compute_stack.py
+tests/test_stream_bridges.py
+tests/test_tobii_multicam_glasses_tracker.py
+tests/test_video_only_3d_pipeline.py

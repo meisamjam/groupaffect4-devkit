@@ -1,0 +1,22 @@
+# Check the cable NIC name (probably also "Ethernet")
+Get-NetAdapter
+
+# Set static IP
+New-NetIPAddress -InterfaceAlias "Ethernet" -IPAddress 10.10.10.1 -PrefixLength 24
+Set-DnsClientServerAddress -InterfaceAlias "Ethernet" -ResetServerAddresses
+
+# Allow ping through Windows Firewall
+New-NetFirewallRule -DisplayName "Allow ICMPv4-In" -Protocol ICMPv4 -IcmpType 8 -Action Allow -Direction Inbound
+
+
+# Step 1 — test port 445 reachability
+Test-NetConnection -ComputerName 10.10.10.2 -Port 445
+
+# Step 2 — map the drive
+net use Z: \\10.10.10.2\affectai_stage /persistent:yes
+
+# Step 3 — verify
+dir Z:\
+
+net use Z: \\10.10.10.2\affectai_stage /user:meisa /persistent:yes
+# (it will prompt for Phoenix's Windows password)

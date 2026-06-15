@@ -1,0 +1,246 @@
+\documentclass[runningheads]{llncs}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{siunitx}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{float}
+
+\begin{document}
+\pagestyle{empty}
+\newcommand{\subhead}[1]{\par\vspace{3pt}\noindent\textbf{#1.}\ }
+\title{AffectAI-Capture: A Reproducible Multimodal Protocol for Small-Group Meeting Research}
+
+\titlerunning{AffectAI-Capture for Small-Group Meetings}
+
+\author{
+Meisam Jamshidi Seikavandi\inst{1,2} \and
+Alice Modica\inst{1,3} \and
+Anna Obara\inst{1,4} \and
+Fabricio Batista Narcizo\inst{1,2} \and
+Tanya Ignatenko\inst{1} \and
+Ted Vucurevich\inst{1} \and
+Jesper Bünsow Boldt \inst{1} \and
+Paolo Burelli\inst{2} \and
+Andrew Burke Dittberner\inst{1}
+}
+
+\authorrunning{M. J. Seikavandi et al.}
+
+\institute{
+GN Advanced Science, GN Group, Ballerup, Denmark \and
+IT University of Copenhagen, brAIn lab, Copenhagen, Denmark \and
+Copenhagen Business School, Copenhagen, Denmark \and
+Aalborg University, Denmark
+}
+
+\maketitle
+
+\begin{abstract}
+Multimodal meeting research increasingly demands datasets that are not only richly instrumented, but also experimentally interpretable, temporally auditable, and reusable across analytical workflows. Existing meeting corpora, including more recent affective and physiological variants, demonstrated the relevance of synchronized multi-camera and multi-microphone capture and of individual-level internal-state measurements. Still, few protocols bring these principles together in a single reproducible framework for small-group meetings.
+
+We present AffectAI-Capture, a protocol for collecting synchronized multimodal data in four-person meeting-like interactions, combining eye tracking, wearable physiology, close-talk and room audio, multi-view video, event logging, and structured self-report. The design balances ecological plausibility with cross-session comparability: sessions use fixed task blocks grounded in established group-interaction paradigms, while acquisition and post-processing are organized around a single authoritative event timeline and standardized outputs. We describe the experimental rationale, synchronization philosophy, data organization model, pilot validation steps, and practical trade-offs. Our contribution is a reproducible protocol architecture linking task design, instrumentation, timing provenance, and data packaging for downstream affective, behavioral, and meeting-analytics research.
+\end{abstract}
+
+\section{Introduction}
+
+Understanding group interaction in realistic meetings requires more than recording speech and video. Researchers increasingly seek to study how attention, arousal, effort, coordination, and subjective experience unfold jointly across participants and over time. This demands multimodal datasets that combine rich sensing, interpretable task structure, auditable synchronization, and reusable data organization.
+
+Classic meeting corpora and related analyses showed the importance of synchronized audio-visual capture in instrumented meeting rooms and the value of structured meeting scenarios for cross-session comparability \cite{carletta2005_ami,janin2003_icsi}. More recent affective and physiological datasets demonstrated the value of eye-related and wearable measurements for studying internal-state variation, but are rarely built around true small-group meeting interactions \cite{mirandacorrea2021_amigos}. This leaves a gap between meeting corpora optimized for collaborative structure and affective-computing datasets optimized for participant-level internal-state sensing.
+
+AffectAI-Capture is designed to close this gap. It combines scenario-based small-group meeting tasks with high-resolution multimodal sensing, explicit event-centered synchronization, and BIDS-oriented derived outputs. The protocol builds on our prior work on gaze-based emotion perception and multimodal affect modelling \cite{seikavandi2023gaze,j2024modeling}, which highlighted the need for richer interaction-centered datasets combining behavioral, ocular, and physiological signals in socially meaningful settings.
+
+The main contribution of this work is AffectAI-Capture: a reproducible protocol architecture linking task design, participant- and room-level sensing, synchronization logic, and provenance-preserving data organization. As a result, the protocol serves as a reusable foundation for affective computing, meeting analytics, multimodal behavioral modelling, and human-centered AI research.
+
+\section{Design Goals and Protocol Philosophy}
+
+The protocol is guided by four design goals.
+\begin{enumerate}
+\vspace{-5pt}
+  \item \textbf{Cross-session comparability without abandoning meeting realism.}  
+  Sessions are structured using fixed task blocks that reproduce distinct social-cognitive interaction regimes, while preserving a plausible overall meeting narrative.
+
+    \item \textbf{Multimodal capture at both group and individual levels.}  
+  The protocol combines room-level behavioral signals with participant-specific channels such as gaze, pupillometry, skin conductance, and heart rate.
+
+  \item \textbf{Auditable temporal provenance.}  
+  Synchronization is treated as a first-class design problem. The protocol does not assume perfect device synchronization, but instead records sufficient timing anchors to estimate, validate, and document alignment.
+
+  \item \textbf{Reproducible and reusable outputs.}  
+  Vendor raw data are preserved, derived outputs are separated, and session outputs are structured in a BIDS-oriented manner to support downstream analysis and long-term reuse.
+\end{enumerate}
+\vspace{-5pt}
+
+These goals reflect a broader view of reproducibility: in multimodal meeting research, reproducibility is not only about publishing code, but also about making task structure, timing semantics, and data provenance machine-readable and inspectable. This direction aligns with broader developments in structured scientific data stewardship, including BIDS and FAIR-style expectations for reusable and interoperable research outputs \cite{gorgolewski2016_bids,pernet2019_eegbids,wilkinson2016_fair}.
+
+
+\section{Positioning Relative to Prior Work}
+
+AffectAI-Capture builds on two complementary principles. First, classic meeting corpora demonstrated the value of instrumented multi-party interaction data, including structured meeting scenarios for comparability and close-talk audio for transcription, overlap handling, and speaker-specific analysis \cite{carletta2005_ami,janin2003_icsi}. However, these corpora typically focused on speech, video, and interaction annotation, with limited access to participant-level measures such as gaze dynamics, pupillometry, or physiological signals.
+
+Second, while multimodal affect datasets have shown the value of combining physiology, video, and self-report, their setups often fell outside genuine small-group collaborative interaction \cite{mirandacorrea2021_amigos}. AffectAI-Capture is designed at the intersection of these principles, focusing on structured four-person meeting tasks, synchronized multi-participant sensing across behavioral and internal-state channels, explicit event-centered synchronization, and reusable BIDS-oriented derived outputs.
+
+\begin{figure}[t]
+    \centering
+    \begin{minipage}[t]{0.47\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figure/audio.jpg}
+        \caption{Audio quality validation using headset microphones on HATS for gain staging, baseline channel inspection, and cross-talk assessment.}
+        \label{fig:audio_check}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.47\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{figure/pilot.jpg}
+        \caption{Pilot deployment of the  AffectAI-Capture setup with multimodal sensing, room cameras, close-talk microphones, and shared display.}
+        \label{fig:pilot_setup}
+    \end{minipage}
+\end{figure}
+
+\section{Experimental Design and Rationale}
+
+\subhead{Session structure}
+
+\noindent\ The protocol targets four-participant sessions organized into five blocks: T0 (onboarding and warm-up), T1 (hidden-profile decision), T2 (negotiation), T3 (idea generation and selection), and T4 (public-goods micro-game).
+
+This chosen fixed order is deliberate. It supports cross-session comparability, while creating a progression through distinct social-cognitive demands: acclimatization, information pooling, strategic exchange, collaborative creativity, and cooperation under mixed incentives.
+
+\subhead{Scientific value of structured tasks}
+
+\noindent While structured tasks may appear less ``natural'' than spontaneous meetings, we see them as a scientific asset. Carefully chosen scenarios make it possible to compare participants and sessions under partially shared conditions while still eliciting rich, ecologically meaningful interaction \cite{carletta2005_ami}. The goal of the protocol is therefore not to imitate every possible real-world meeting, but to create repeated interaction contexts with known behavioral pressures, making multimodal measurements more interpretable.
+
+\subhead{Task-specific rationale}
+
+\noindent Each task block is included because it elicits a distinct and well-studied interaction regime.
+
+\vspace{-5pt}
+\paragraph{T1: Hidden-profile decision.}
+This task targets information pooling under asymmetrically distributed knowledge. It is suitable for studying whether groups disclose and integrate unique information, how attention and speaking patterns shift when new evidence is introduced, and how collective decisions are shaped by discussion structure \cite{stasser1985_hiddenprofile,lu2012_hiddenprofile_meta}.
+
+\vspace{-5pt}
+\paragraph{T2: Negotiation.}
+Negotiation introduces strategic interaction, emotional signaling, concession dynamics, and interpersonal regulation. It is well suited for multimodal capture, as vocal, facial, physiological, and gaze-related signals may reflect tension, control, responsiveness, and the evolution of bargaining positions \cite{vankleef2004_emotion_negotiation}.
+
+\vspace{-5pt}
+\paragraph{T3: Idea generation and selection.}
+This task separates divergent and convergent collaboration. It allows examination of how ideas are generated, shared, compared, and evaluated, as well as how groups converge on a final choice while weighing priorities such as originality, feasibility, or overall appeal \cite{rietzschel2010selection}.
+
+\paragraph{T4: Public-goods micro-game.}
+This task introduces a controlled tension between private incentives and collective outcomes. It produces clear event boundaries for decision, reveal, and discussion, making it useful for event-locked multimodal analysis of cooperation, surprise, disappointment, and the negotiation of fairness and social norms \cite{fehr2000_publicgoods_punishment,chaudhuri2011_publicgoods_survey}.
+
+\subhead{Task timing}
+
+\noindent In the proposed protocol, timed and moderator-controlled phases are intentionally mixed. Timed phases ensure comparability across sessions, while controlled briefing phases preserve flexibility and reduce procedural brittleness.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Task and timing structure used in the current protocol.}
+\begin{tabular}{p{1.2cm}p{4.1cm}p{6.2cm}}
+\toprule
+Task & Objective & Timed phases (implemented) \\
+\midrule
+T0 & onboarding and acclimatization & free talk: 300 s \\
+T1 & hidden-profile consensus & evidence reading: 75 s; discussion: 420 s; candidate selection: 60 s \\
+T2 & dyadic/resource negotiation & negotiation: 480 s; settlement form: no timer\\
+T3 & divergent then convergent ideation & idea generation: 180 s; ideas board and discussion: 420 s; group selection: 60 s\\
+T4 & cooperation under private decision and public reveal & contribution: 60 s; outcome reveal: 60 s; discussion: 180 s \\
+\bottomrule
+\end{tabular}
+\label{tab:tasks}
+\end{table}
+
+\section{Multimodal Instrumentation}
+
+\subhead{Primary devices}
+
+\noindent The deployed stack includes 4 Tobii Pro Glasses 3, 4 EmotiBit devices, 5--7 Jabra cameras, 5 DPA microphones (4 close-talk + 1 room/spare), optional Vicon motion capture, and 4 participant tablets with 1 shared big-screen endpoint.
+
+\subhead{Camera layout and capture settings}
+
+\noindent The video subsystem is designed to balance participant coverage, table-level interaction visibility, and synchronization robustness. The current setup uses seven room cameras: four desk-adjacent cameras providing participant-focused lateral views and three shared overview cameras capturing the room more globally. Most cameras are configured for 1920$\times$1080 capture at 30 fps, with the wide-angle room camera subject to device-dependent effective resolution limits in practice.
+
+The layout is organized around a desk-centered spatial reference system. A permanent ChArUco board at the desk center defines the world origin, while desk-edge and participant-linked markers support calibration, participant localization, and later multimodal alignment. Four desk-adjacent cameras are physically mounted upside down and corrected in software to improve mounting flexibility and coverage while preserving consistent downstream orientation.
+
+The key capture settings are chosen for temporal auditability rather than visual aesthetics. Cameras are recorded at a constant nominal frame rate, frame-level timing logs are preserved, and wallclock-based packet timestamps are preferred over device-local timestamps for cross-device consistency. Audio is captured separately rather than multiplexed into camera streams in order to reduce USB bandwidth contention and simplify synchronization diagnostics.
+
+\subhead{Complementarity of sensing modalities}
+
+\noindent The protocol combines modalities because no single signal adequately captures meeting dynamics.
+
+\textbf{Audio} supports speech activity, overlap, diarization, interaction rhythm, and verbal content; \textbf{video} supports posture, gesture, head orientation, and other observable nonverbal behavior; \textbf{eye tracking} supports analysis of attentional allocation and interaction focus; \textbf{physiological signals} provide cautious proxies for arousal, effort, and autonomic activation; and \textbf{self-report} provides subjective grounding rather than forcing internal-state inference entirely from behavior.
+
+These channels are treated as complementary indicators rather than direct readouts of psychological states. This is especially important for pupil-related and wearable physiological signals, whose relation to affect and effort is informative but confounded by illumination, motion, preprocessing choices, and task context \cite{mathot2018_pupillometry_review,posadaquintero2020_eda_review}. Eye tracking is included not only as a behavioral stream, but also as a theoretically motivated channel for studying attentional allocation and social-emotional processing \cite{seikavandi2023gaze,j2024modeling}. For video, the protocol prioritizes complementary viewpoints over a single canonical camera, since occlusion, head turning, and shared attention can make single-view capture insufficient in small-group meetings.
+
+\section{Self-Annotation Strategy}
+
+Participants provide subjective labels through brief in-task valence--arousal--dominance prompts and post-task questionnaires capturing overall affect and experience with the task and interaction.
+
+The rationale is twofold. First, self-report remains necessary when the goal includes subjective affect or perceived social experience. Second, in-task prompting allows labels to be linked to concrete phases and events rather than only retrospective summaries.
+
+At the same time, prompt burden must be controlled. Prompting is therefore event-contingent and phase-aware, with minimum spacing and condition-specific scheduling. The protocol aims to preserve interpretability without turning self-report into the dominant task. Where brief affective prompts are used, the design is aligned with the broader tradition of low-burden dimensional self-report, including valence--arousal--dominance style instruments and the Self-Assessment Manikin \cite{bradley1994_sam}.
+
+\section{Synchronization Philosophy}
+
+\subhead{Synchronization as a protocol concern}
+
+\noindent In multimodal meeting studies, timing errors are not a minor implementation detail. They directly affect the interpretation of turn-taking, gaze-to-speaker relations, event-locked physiological responses, and self-report alignment. Accordingly, AffectAI-Capture treats synchronization as an explicit protocol concern rather than an invisible background service \cite{anguera2012_diarization_review}.
+
+\subhead{Authoritative event spine}
+
+\noindent\ The protocol is centered on one authoritative session-level \texttt{events.tsv}. This file serves as the main temporal and semantic backbone of the session. It records task, phase, participant, stream, and event details in a machine-readable form.
+The goal is not to claim that all modalities are perfectly synchronized at acquisition time. The goal is to ensure that alignment assumptions can be reconstructed and inspected later.
+
+\subhead{Redundant timing anchors}
+
+\noindent Synchronization relies on a hierarchy of anchors: LSL as the logical cross-device timebase, event logging at the protocol level, video frame logs and capture sidecars for camera timing, and modality-specific timing metadata when available.
+
+This redundancy is intentional. Real acquisition systems fail in uneven ways, so the protocol records enough temporal evidence to validate and repair alignment post hoc rather than relying on a single fragile mechanism. This is consistent with LSL's role as a unifying synchronization layer for heterogeneous recordings, while still acknowledging that device-specific latencies require explicit validation rather than assumptions of perfect synchrony \cite{kothe2024_lsl}.
+
+\section{Data Organization and Reproducibility}
+
+AffectAI-Capture adopts a BIDS-oriented organization to make multimodal recordings easier to inspect, reuse, and process across heterogeneous streams. The main rationale is that raw data, metadata, events, and derived outputs should be clearly separated so that later analyses can reconstruct provenance rather than depend on undocumented preprocessing decisions. This choice is aligned with the broader BIDS ecosystem and FAIR-style expectations for interoperable and reusable scientific data \cite{gorgolewski2016_bids,pernet2019_eegbids,wilkinson2016_fair}.
+
+At the session level, outputs follow a BIDS-like hierarchy with study metadata, participant/session folders, a session-level \texttt{events.tsv}, modality-specific subfolders, and a separate \texttt{sourcedata/} tree for vendor raw files. Raw data are preserved, while canonical and analysis-ready outputs are written separately. Derived products include modality-specific tables and media files, per-task run windows and event slices, normalized annotation outputs, and participant-signal mapping artifacts. This organization improves immediate usability while preserving the information needed for later re-analysis and audit.
+
+\section{Pilot Validation and Practical Quality Control}
+
+\subhead{Audio validation}
+
+\noindent An audio quality test was conducted on 2026-02-18 using four DPA d:fine CORE 4066 close-talk microphones connected to an RME Fireface 802 and recorded in REAPER. The goals were to verify gain staging, low noise floor, and minimal cross-talk behavior. The validation included playback of gray noise from a fixed source position, allowing measurement of signal-to-noise ratio across channels.
+
+To simulate realistic participant conditions, two head-and-torso simulators were used (Fig.~\ref{fig:audio_check}). During the validation, one HATS emitted either white noise or recorded speech, while a second HATS was equipped with one of the DPA microphones and placed sequentially at different seating positions; the procedure was repeated for all microphones. Gain staging was set with conservative headroom, targeting approximately \(-12\) dBFS peaks during normal speech. Quantitative post-hoc analysis of SNR, noise floor variation, and recommended gain settings remains part of ongoing QC work.
+
+\subhead{Video synchronization validation}
+
+\noindent A multi-camera synchronization test was conducted on 2026-02-20 using five Jabra cameras in the room configuration intended for meeting capture. The design principle was to record frame-level timing anchors and LSL-linked progress information during capture, then validate alignment offline using synchronized grid visualization across simultaneous views. The broader pilot deployment is illustrated in Fig.~\ref{fig:pilot_setup}.
+
+\subhead{QC philosophy}
+ 
+\noindent The broader QC strategy includes pre-flight checks for stream and device availability, fail-loud process supervision, session summaries and manifests, explicit reporting of missing streams and timing issues, and preservation of synchronization sidecars for later auditing.
+
+The aim is not to hide operational imperfections, but to document them in a way that preserves the scientific usability of the dataset. This emphasis on explicit alignment checks, missing-stream reporting, and audio-quality inspection is consistent with the broader evaluation culture of meeting and diarization research \cite{anguera2012_diarization_review}.
+
+\section{Limitations and Trade-offs}
+
+The protocol makes several deliberate trade-offs. Structured tasks improve comparability, but do not capture the full diversity of real-world meetings. Physiological and pupil-related signals are informative but indirect and must be interpreted with care. True temporal alignment across heterogeneous devices is never guaranteed by software alone, which is why redundant timing evidence is retained. Commodity camera stacks offer practical flexibility but can introduce platform- and bandwidth-specific instability, especially under USB-related hardware constraints. Some integrations also remain dependent on vendor tooling or device-specific constraints. These are not incidental weaknesses; they are part of the real design space of multimodal meeting science. The contribution of the protocol is to make such constraints explicit and manageable.
+
+\section{Conclusion}
+
+AffectAI-Capture is a reproducible protocol for multimodal small-group meeting research. Its contribution lies in the integration of structured task design, participant-level and room-level sensing, synchronization-aware event modeling, and BIDS-oriented data organization.
+
+The protocol is intended as infrastructure for future scientific use rather than as a single-purpose dataset recipe. By linking design rationale, capture architecture, timing provenance, and derived outputs, it provides a practical foundation for studying group affect, coordination, attention, effort, and collaborative behavior in a way that is both experimentally interpretable and operationally auditable.
+
+More broadly, the protocol supports future work on temporally sensitive, multimodal, and person-aware modelling of social-affective interaction, extending earlier work on gaze dynamics and face-to-face emotion modelling into richer small-group meeting settings \cite{seikavandi2023gaze,j2024modeling}.
+
+
+\bibliographystyle{splncs04}
+\bibliography{references}
+
+\end{document}

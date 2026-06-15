@@ -1,0 +1,17 @@
+devices:
+  - id: P1
+    ip: ""
+    serial: "TG03B-080201022801"
+    use_discovery: false
+  - id: P2
+    ip: ""
+    serial: "TG03B-080201129491"
+    use_discovery: false
+  - id: P3
+    ip: ""
+    serial: "TG03B-080201020821"
+    use_discovery: false
+  - id: P4
+    ip: ""
+    serial: "TG03B-080201139301"
+    use_discovery: false

@@ -1,0 +1,575 @@
+%% AffectAI Dataset Paper — NeurIPS 2026 Evaluations & Datasets Track
+%%
+%% Track: https://neurips.cc/Conferences/2026/CallForEvaluationsDatasets
+%% Deadlines: abstract May 4 2026 AoE; full paper May 6 2026 AoE
+%% Format: NeurIPS 2026 LaTeX template
+%%
+%% Compile: pdflatex main → bibtex main → pdflatex × 2
+%%
+%% Review mode: DOUBLE-BLIND.
+%% For submission, use the official NeurIPS 2026 style in anonymous mode.
+%% At camera-ready: switch to [final], restore authors/affiliations/ORCIDs,
+%% acknowledgements, and de-anonymise dataset URLs.
+
+\documentclass{article}
+
+%% NOTE:
+%% For a double-blind NeurIPS submission, the usual setting is:
+%%   \usepackage{neurips_2026}
+%% not [preprint].
+%% Use [preprint] only for arXiv or internal public drafts.
+\usepackage{neurips_2026}
+% \usepackage[preprint]{neurips_2026}  % use only for non-anonymous preprint
+% \usepackage[final]{neurips_2026}     % use at camera-ready
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{cleveref}
+
+%% Title — keep concise and descriptive.
+\title{AffectAI: A Multimodal Dataset of Co-Located Group Interaction}
+
+%% Anonymous author block for double-blind review.
+\author{%
+  Anonymous Authors\\
+  Submission to NeurIPS 2026 Evaluations \& Datasets Track\\
+  \texttt{\{anon@example.com\}}%
+}
+
+\begin{document}
+\maketitle
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\begin{abstract}
+We present \textbf{AffectAI}, a multimodal dataset of co-located
+four-person group interaction during structured collaborative tasks:
+information pooling, mini-negotiation, idea generation, and a public-goods
+micro-game.
+Each session captures per-participant physiological signals, 2D eye tracking,
+close-talk audio, tablet-based self-reports, and pre-session Big-Five
+personality scores, linked through anonymised seat identifiers.
+The paper focuses on dataset characterisation rather than leaderboard-style
+benchmarking: we document the study design, synchronisation strategy,
+modality coverage, missingness, task outcomes, and release structure.
+Where feature availability permits, we include one conservative worked example
+illustrating how task-level multimodal summaries can be analysed; otherwise,
+the section specifies supported analyses without making strong predictive
+claims.
+The release is organised in a BIDS-inspired structure and accompanied by
+Croissant metadata, datasheet documentation, quality-control reports, and
+processing scripts.
+We explicitly document the limitations of the current release, including
+small sample size, single-site collection, single-language interaction,
+per-modality missingness, 2D rather than world-frame gaze, and voice
+re-identification risks.
+Dominance-related analyses, video-based 3D pose, and world-frame gaze are
+reserved for follow-up work.
+\end{abstract}
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\section{Introduction}
+\label{sec:intro}
+
+Most multimodal corpora used to study affect and interaction have been
+recorded in single-participant or dyadic settings
+\cite{ringeval2013introducing,busso2008iemocap,koelstra2012deap}.
+Co-located groups impose different constraints: turn-taking is multi-party,
+gaze targets multiply, roles can shift within a session, and physiological
+responses must be interpreted against an evolving social context rather than
+a fixed stimulus.
+Datasets that capture this setting are relatively rare; datasets that combine
+per-participant physiology, gaze, audio, task outcomes, self-reports, and
+personality measures in the same co-located group setting are rarer still.
+
+We present \textbf{AffectAI}, a multimodal corpus of four-person group
+interaction designed to support analysis of affective, cognitive, and
+conversational dynamics in structured collaborative tasks.
+Each session includes four task blocks chosen to elicit complementary
+social-affective situations: hidden-profile information pooling,
+mini-negotiation, nominal-group-technique idea generation, and a public-goods
+micro-game.
+For each participant, we record synchronised physiology, 2D eye tracking,
+close-talk audio, and tablet-based self-reports.
+We additionally administer the Big-Five Inventory before each session.
+
+The current paper is deliberately framed as a dataset-characterisation paper.
+Its primary contribution is not a new model or a leaderboard, but a transparent
+description of what the dataset contains, how the modalities are synchronised,
+what can be evaluated with the current release, and where the main limitations
+lie.
+This framing is appropriate for the current scale of the dataset: the corpus is
+rich and multimodal, but the number of groups is too small to support broad
+benchmark claims.
+
+The paper includes one worked example if the required feature tables are ready
+and reliable by the internal freeze.
+This worked example is intended to demonstrate dataset use, not to establish a
+definitive scientific result.
+If one or more feature families are incomplete, the worked example is reduced
+to the available subset, and the missing modality is reported as a limitation.
+
+The contributions of this paper are:
+\begin{enumerate}
+  \item A multimodal corpus of \textbf{TODO~$N_g$} groups
+    (\textbf{TODO~$N_s$} analysable sessions;
+    \textbf{TODO~$N_p$} unique participants;
+    \textbf{TODO~$T$} hours total) capturing per-participant physiology,
+    2D gaze, close-talk audio, tablet self-reports, task outcomes, and
+    Big-Five personality scores.
+  \item A dataset-characterisation analysis covering synchronisation,
+    modality coverage, per-session missingness, task structure, and
+    quality-control outputs.
+  \item One conservative worked example, contingent on final feature
+    availability, together with formal specifications for additional analyses
+    that the dataset supports.
+  \item A reproducible processing and release structure, including
+    BIDS-inspired organisation, Croissant metadata, datasheet documentation,
+    and transparent access-tier decisions for sensitive modalities.
+\end{enumerate}
+
+The remainder of the paper is organised as follows.
+\Cref{sec:related} surveys related corpora.
+\Cref{sec:design} describes the task and session design.
+\Cref{sec:modalities} details the acquisition setup.
+\Cref{sec:processing} describes processing and release structure.
+\Cref{sec:worked} presents the worked example and supported analyses.
+\Cref{sec:stats} reports coverage and quality.
+\Cref{sec:limitations} states limitations.
+\Cref{sec:ethics} discusses ethics, access, and responsible use.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\section{Related Work}
+\label{sec:related}
+
+% TODO ~3/4 page.
+% Position against:
+%   - Group multimodal corpora: AMI, ICSI, ELEA, MatchNMingle, UDIVA.
+%   - Affect + physiology corpora: RECOLA, K-EmoCon, MAHNOB-HCI, DEAP.
+%   - Conversational corpora with transcripts/diarisation: AMI, ICSI, CHiME.
+%
+% Suggested comparison axes:
+%   group_size / co_located / structured_tasks / per_person_physio /
+%   per_person_gaze / per_person_audio / self_report / personality /
+%   public_or_gated_release.
+%
+% Core positioning:
+% AffectAI is not larger than prior corpora. Its contribution is the
+% simultaneous combination of modalities in a structured co-located group
+% setting with per-person sensing and transparent release documentation.
+
+\textbf{TODO} short prose overview, followed by a comparison table.
+% \input{tables/related_axes}
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\section{Dataset Design}
+\label{sec:design}
+
+\paragraph{Participants.}
+Data were collected from \textbf{TODO~$N_g$} groups of four participants each
+($N_p=\textbf{TODO}$ unique participants;
+mean age~=~\textbf{TODO};
+sex/gender distribution~=~\textbf{TODO}).
+Recruitment used a convenience sample drawn from
+\textbf{[ANON --- recruitment context]}.
+The demographic consequences of this sampling strategy are discussed in
+\cref{sec:limitations}.
+Each participant gave written informed consent under approval
+\textbf{[ANON --- ethics reference]}.
+Within each session, participants are referred to using anonymous seat
+identifiers P1--P4.
+The mapping from real identity to seat identifier is not part of the release.
+
+\paragraph{Pre-session questionnaire.}
+Before each session, participants completed the Big-Five Inventory
+(BFI-44, \cite{john1999bigfive}).
+Per-domain scores are computed as item means after reverse coding, following
+standard scoring.
+Of \textbf{TODO} unique participants, \textbf{TODO} have matched BFI-44
+responses.
+The matching and audit procedure are documented in the appendix.
+
+\paragraph{Session structure.}
+Each session lasted approximately \textbf{TODO} minutes and comprised a
+baseline phase followed by four collaborative tasks.
+Task phases are demarcated by experimenter-issued LSL markers and written
+into release-side task-window files so downstream users do not need to
+reconstruct the timing manually.
+
+\paragraph{Tasks.}
+The four tasks were selected to elicit distinct interaction patterns while
+remaining understandable to participants and feasible within a single session.
+
+\textbf{T1} is a hidden-profile decision task in which information is
+unevenly distributed across participants; successful performance requires
+information pooling.
+
+\textbf{T2} is a mini-negotiation task in which participants or subgroups
+hold partially conflicting objectives.
+
+\textbf{T3} is a nominal-group-technique idea-generation task combining
+individual ideation and group ranking.
+
+\textbf{T4} is a public-goods micro-game with private contribution decisions
+and a public reveal phase.
+
+The per-task outcomes are recorded in
+\texttt{beh/<session>\_stimuli\_answers.tsv} where available.
+
+\paragraph{Self-report probes.}
+At scheduled moments during the session, participants respond to
+tablet-based self-report probes.
+The collected scales include valence, arousal, and dominance-style ratings.
+For this paper, dominance-related analysis is deliberately not treated as a
+central contribution; dominance is retained as a released variable where
+available and reserved for follow-up work.
+The current analysis focuses on dataset characterisation and, where possible,
+valence/arousal or task-level summaries.
+
+\input{tables/task_overview}
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\section{Modalities and Acquisition}
+\label{sec:modalities}
+
+This release focuses on per-participant streams and task/self-report
+annotations.
+Multi-camera video streams were recorded for separate follow-up work, but
+video-based 3D pose, world-frame gaze, and related analyses are not included
+in the present submission.
+
+\Cref{tab:modalities} summarises the release modalities.
+
+\input{tables/modalities}
+
+\paragraph{Physiology.}
+Each participant wears an EmotiBit sensor on the wrist, streaming
+photoplethysmography, electrodermal activity, skin temperature, and inertial
+motion.
+Sampling rates are preserved at device-native resolution where possible.
+% TODO: confirm channel-specific sampling rates.
+Devices are mapped to seat identifiers during acquisition, and the mapping is
+stored in the session metadata.
+
+\paragraph{Eye tracking.}
+Each participant wears a Tobii Pro Glasses 3 unit.
+The present release includes 2D gaze, pupil diameter, validity flags, and
+scene-camera timing information.
+It does not include world-frame gaze alignment.
+Therefore, direct claims about who looked at whom require additional processing
+outside the current release.
+
+\paragraph{Audio.}
+Each participant has a close-talk lapel microphone recorded through a
+multi-channel audio interface.
+A room/ambient microphone may be used for noise and crosstalk
+characterisation where available.
+Close-talk audio is the basis for transcript generation and audio/prosodic
+features.
+Raw audio access is treated separately from lower-risk tabular modalities
+because voice can be personally identifying.
+
+\paragraph{Tablet self-report and task responses.}
+Each participant uses a tablet for self-report probes and task-specific
+responses.
+Probe events, response timestamps, and task events are logged and aligned to
+the common session timeline.
+
+\paragraph{Synchronisation.}
+Acquisition is organised around a common LSL timebase.
+The processing pipeline uses LSL markers, session progress logs, and
+event files to derive task windows and align modalities.
+For the current release, the most important downstream artefacts are the
+per-task windows, aligned events, and per-modality timestamped files.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\section{Processing and Release}
+\label{sec:processing}
+
+The release follows a BIDS-inspired structure \cite{gorgolewski2016brain}.
+Each session contains per-modality subdirectories for physiological data,
+eye tracking, audio-derived artefacts, behavioural/task responses, and
+annotations.
+The exact schema is documented in the release README and datasheet.
+
+\paragraph{From raw acquisition to release files.}
+The processing pipeline merges raw acquisition outputs, derives task windows
+from LSL markers, writes canonical TSV/JSON sidecars, and produces
+per-session quality-control summaries.
+The intended design goal is deterministic conversion: re-running the pipeline
+on the same raw inputs should produce the same release artefacts, aside from
+non-substantive metadata timestamps.
+
+\paragraph{Conversation transcripts.}
+We aim to produce per-session transcripts from the close-talk audio channels.
+Because each microphone is associated with a known seat identifier, channel
+identity provides a strong prior for speaker assignment.
+However, cross-talk between nearby lapel microphones remains a practical risk.
+The transcript pipeline is therefore treated as a release artefact with
+documented quality checks, not as unquestioned ground truth.
+
+The planned transcript pipeline is:
+\begin{enumerate}
+  \item per-channel voice-activity detection,
+  \item per-channel speech recognition,
+  \item cross-talk suppression or quality flagging,
+  \item merge into a single ordered transcript with P1--P4 speaker labels,
+  \item name-redaction and basic privacy checks.
+\end{enumerate}
+
+If manual checking is completed before the internal freeze, we report
+transcript-quality metrics in the appendix.
+If not, the transcripts are released or described with explicit caveats rather
+than used as validated analytical labels.
+
+\paragraph{Anonymisation.}
+Released files use anonymous seat identifiers rather than names.
+Free-text fields and transcripts are scanned for direct identifiers and
+redacted where necessary.
+The real identity-to-seat mapping is excluded from the release.
+
+\paragraph{Release tiers.}
+The lower-risk tabular modalities are intended for public or open academic
+release, subject to final consent and institutional checks.
+Raw audio is handled as a separate access decision because of
+voice re-identification risk.
+The default conservative plan is to gate raw audio access under a Data Use
+Agreement if the consent interpretation is ambiguous.
+The paper will describe only the access structure that is actually in place at
+submission time.
+
+\paragraph{Hosting and metadata.}
+The dataset is planned for release through a recognised ML/data hosting
+platform, with Croissant metadata and Responsible AI fields.
+A datasheet and release README document intended use, limitations, access
+conditions, and maintenance policy.
+% TODO: insert final anonymous review URL and version tag.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\section{Worked Example and Supported Analyses}
+\label{sec:worked}
+
+This section has two roles.
+First, it provides one conservative worked example if the required feature
+tables are ready and reliable.
+Second, it specifies additional analyses that the dataset supports without
+presenting them as complete benchmarks in this paper.
+
+This is an intentionally conservative choice.
+The dataset is multimodal and analytically rich, but the number of groups is
+too small for leaderboard-style claims.
+
+\subsection{Worked example: task-level multimodal characterisation}
+\label{sec:worked_example}
+
+% TODO: finalise after the Thursday checkpoint.
+% The final question should be written before running the final analysis.
+
+\paragraph{Question.}
+We ask whether simple task-level summaries of physiology and/or audio-prosody
+vary in interpretable ways across structured task phases and task outcomes.
+The analysis is descriptive and intended to illustrate use of the release
+structure.
+
+\paragraph{Inputs.}
+The preferred feature set combines:
+(i) per-participant physiological summaries aggregated within each task window;
+(ii) per-participant audio/prosodic summaries over the same windows; and
+(iii) task-outcome descriptors from tablet responses.
+If one modality is unavailable or unreliable, the worked example is run on the
+available subset and the missing modality is reported as a limitation.
+
+\paragraph{Outputs.}
+The worked example reports a compact table or figure summarising the relation
+between task phase, task outcome, and available multimodal features.
+Effect sizes, confidence intervals, and descriptive patterns are preferred over
+strong significance claims.
+
+\paragraph{Interpretation.}
+The worked example is a demonstration of dataset use, not a final claim about
+group affect, personality, or performance.
+Null or weak patterns are reported as such.
+
+\subsection{Supported analysis: self-report dynamics}
+
+The self-report probes support analysis of valence/arousal changes across
+baseline and task phases.
+Dominance ratings may be released where available, but dominance analysis is
+not a core analysis in this submission.
+
+\subsection{Supported analysis: personality and multimodal response}
+
+The BFI-44 scores support exploratory analyses of whether stable personality
+traits modulate physiological, self-report, or conversational responses across
+tasks.
+Given the sample size, such analyses should be treated as hypothesis-generating
+rather than confirmatory.
+
+\subsection{Supported analysis: task outcomes and interaction dynamics}
+
+The structured tasks support outcome-oriented analyses, including
+hidden-profile decision correctness, negotiation settlement, idea-generation
+outputs, and public-goods contribution behaviour.
+These outcomes can be linked to multimodal signals in follow-up work,
+especially once transcript and audio-derived features are fully validated.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\section{Dataset Statistics and Quality}
+\label{sec:stats}
+
+\Cref{tab:stats} reports per-modality coverage across analysable sessions.
+We report coverage per modality rather than requiring every session to be
+complete for every possible analysis.
+
+\begin{description}
+  \item[Tier 1:]
+  sessions with all core release modalities present for all four participants
+  and no major documented anomalies.
+  \item[Tier 2:]
+  sessions with minor documented gaps, still usable for some analyses.
+  \item[Tier 3:]
+  sessions with significant gaps, included for transparency but excluded from
+  the headline worked example unless specifically justified.
+\end{description}
+
+The worked example uses Tier~1 and eligible Tier~2 sessions for which the
+required modalities are present.
+
+\input{tables/dataset_stats}
+
+\paragraph{Synchronisation quality.}
+% TODO: numbers from QC pipeline.
+We report cross-device/session-level timing quality using LSL-derived
+alignment summaries and per-session QC reports.
+Where exact offsets cannot be estimated for a stream, this is reported as a
+coverage limitation rather than imputed.
+
+\paragraph{Modality coverage.}
+Coverage is reported at session, participant, and modality level.
+This avoids treating a partially missing modality as failure of the entire
+session.
+
+\paragraph{Audio and transcript quality.}
+Audio quality is summarised using per-channel diagnostics where available.
+Transcript quality is reported if manual checks are complete.
+Otherwise, transcripts are described as automatically generated release
+artefacts with quality caveats.
+
+\paragraph{Self-report response rate.}
+Probe response rates are reported overall and by session/task where available.
+Sparse responses are treated as missingness, not interpolated into dense labels.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\section{Limitations}
+\label{sec:limitations}
+
+\paragraph{Sample size.}
+The dataset contains \textbf{TODO} participants across \textbf{TODO} groups.
+This is sufficient for dataset characterisation and exploratory multimodal
+analysis, but not for broad benchmark or leaderboard claims.
+
+\paragraph{Single site and language.}
+All sessions were recorded at a single site in \textbf{[ANON]} and conducted
+in English.
+Turn-taking norms, humour, backchannels, and negotiation styles may therefore
+reflect the local context.
+
+\paragraph{Per-modality missingness.}
+Not all sessions are complete for all modalities.
+We report missingness explicitly and perform analyses only on sessions where
+the required inputs are available.
+
+\paragraph{Voice re-identification.}
+Close-talk audio carries voice re-identification risk.
+This motivates separate treatment of raw audio access and explicit restrictions
+against speaker identification, voice cloning, and redistribution.
+
+\paragraph{2D rather than world-frame gaze.}
+Released gaze is 2D in the participant's own scene camera, not aligned to a
+shared room coordinate system.
+Cross-participant gaze-target analysis is therefore outside the current release.
+
+\paragraph{Dominance and video-based analyses deferred.}
+Although dominance-style self-report may exist in the raw/release data,
+dominance analysis is deliberately deferred.
+Similarly, multi-camera video, 3D pose, and world-frame gaze alignment are
+reserved for follow-up work.
+
+\paragraph{No clinical ground truth.}
+The dataset is not a clinical affect dataset.
+It should not be used for diagnosis, mental-health inference, personnel
+evaluation, or surveillance-style deployment.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+\section{Ethics, Access, and Responsible Use}
+\label{sec:ethics}
+
+\paragraph{Ethics approval and consent.}
+The study was approved under \textbf{[ANON --- ethics reference]}.
+Participants provided written informed consent before taking part.
+The final release licence and access tiers follow the consent language and
+institutional requirements.
+
+\paragraph{Anonymisation.}
+Released files use anonymous seat identifiers.
+Direct identifiers are removed from tabular files and redacted from transcripts
+where detected.
+The identity mapping is not released.
+
+\paragraph{Access policy.}
+The dataset is intended for non-commercial academic research on multimodal
+group interaction.
+If raw audio is gated, access requires agreement to a Data Use Agreement.
+The DUA prohibits speaker identification, voice cloning, workplace
+surveillance, redistribution, and attempts to recover participant identity.
+
+\paragraph{Out-of-scope use.}
+The dataset is not appropriate for clinical diagnosis, individual scoring,
+automated personnel evaluation, surveillance, or deployment in settings where
+participants are monitored without informed consent.
+
+\paragraph{Maintenance.}
+The dataset will be maintained at \textbf{TODO hosting URL} for at least
+\textbf{TODO} years from publication.
+Errata, schema updates, and quality-control artefacts will be released under
+versioned tags.
+The version described in this paper is \textbf{TODO v1.0.0}.
+
+%% ═══════════════════════════════════════════════════════════════════════════
+%% Acknowledgements omitted for double-blind review.
+%% \section*{Acknowledgements}
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+%% ── Appendix ──────────────────────────────────────────────────────────────
+\appendix
+
+\section{BFI-44 scoring and item list}
+\label{app:bfi44}
+% TODO: item list, reverse coding, scoring formula.
+
+\section{Synchronisation pipeline detail}
+\label{app:sync}
+% TODO: LSL streams, task-window derivation, QC logic.
+
+\section{Per-session quality table}
+\label{app:quality}
+% TODO: per-session × modality table.
+
+\section{Transcription pipeline parameters}
+\label{app:transcript}
+% TODO: model versions, VAD parameters, cross-talk suppression, redaction.
+
+\section{Datasheet for Datasets}
+\label{app:datasheet}
+% TODO: standard Datasheet sections.
+
+\end{document}

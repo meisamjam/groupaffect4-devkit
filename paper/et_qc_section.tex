@@ -1,0 +1,122 @@
+%% Eye-Tracking Data Quality Control — standalone section fragment.
+%%
+%% Intended placement: \section{Processing and Release} (\cref{sec:processing}),
+%% or as a subsection of \section{Dataset Statistics and Quality} (\cref{sec:stats}).
+%%
+%% Usage: \input{et_qc_section} at the appropriate insertion point in main.tex.
+
+\subsection{Eye-tracking quality control}
+\label{sec:et_qc}
+
+Raw Tobii Pro Glasses~3 streams are stored as task-split TSV files
+(\texttt{et/*\_acq-P*\_tobii.tsv.gz}) with five per-sample columns:
+normalised horizontal gaze position ($x \in [0,1]$),
+normalised vertical gaze position ($y \in [0,1]$),
+left-eye pupil diameter (mm),
+right-eye pupil diameter (mm),
+and a binary gaze-validity flag.
+The quality-control pipeline
+(\texttt{tools/features/extract\_eyetracking\_features.py})
+processes each participant $\times$ task file independently and writes three
+output tables: a participant-task summary, a 30-second rolling-window table,
+and a per-participant-task QC-flag summary.
+
+\paragraph{QC checks.}
+Thirteen rule-based flags are evaluated sequentially.
+Temporal flags verify that a file exists (\texttt{missing\_et}),
+that the recording duration exceeds 30~s (\texttt{short\_duration}),
+and that the estimated device sample rate falls within the expected
+Tobii Pro Glasses~3 operating range of 40--60~Hz
+(\texttt{sample\_rate\_unavailable}, \texttt{sample\_rate\_unusual}).
+
+Gaze-validity flags check that the device-reported fraction of valid gaze
+samples is at least 70\% (\texttt{gaze\_low\_validity}).
+In addition, the fraction of nominally valid samples whose gaze coordinates
+fall outside the scene-camera frame $[0,1]^2$ is computed;
+if this exceeds 10\% the \texttt{gaze\_out\_of\_bounds} flag is raised,
+indicating possible calibration drift or large head rotations.
+
+Pupil-diameter flags operate on both the binocular (pairwise-mean)
+and per-eye signals.
+Coverage flags (\texttt{pupil\_low\_coverage},
+\texttt{pupil\_left\_low\_coverage}, \texttt{pupil\_right\_low\_coverage})
+fire when the fraction of missing samples exceeds 30\% for the respective
+signal.
+A plausibility check (\texttt{pupil\_implausible}) verifies that the mean
+binocular diameter lies within the physiologically expected range of
+1.5--9.0~mm; values outside this range indicate unit-scaling errors or
+systematic measurement failure.
+An asymmetry check (\texttt{pupil\_asymmetry\_large}) flags cases where the
+mean absolute left--right difference exceeds 1.5~mm, consistent with
+anisocoria or single-eye tracking failures.
+Finally, a velocity-spike flag (\texttt{pupil\_velocity\_spike}) detects
+mean pupil dilation rates above 1.0~mm/s, which suggest artefactual
+sample-to-sample jumps rather than genuine physiological dilation.
+
+Blink estimates are derived by detecting runs of consecutive invalid samples
+lasting 50--400~ms (the typical blink-duration range).
+The \texttt{blink\_rate\_unusual} flag fires when the estimated rate falls
+outside 3--45 blinks per minute, which can indicate systematic validity
+dropouts unrelated to blinking or a recording artefact.
+
+\Cref{tab:et_qc_flags} summarises all flags and their threshold values.
+
+\begin{table}[t]
+  \centering
+  \caption{Eye-tracking QC flag catalogue.
+           A semicolon-separated list of fired flags (or \texttt{ok})
+           is stored in \texttt{qc\_flag} for each participant-task row.}
+  \label{tab:et_qc_flags}
+  \small
+  \begin{tabular}{lp{7cm}l}
+    \toprule
+    \textbf{Flag} & \textbf{Condition} & \textbf{Threshold} \\
+    \midrule
+    \texttt{missing\_et}           & No file found                                          & ---               \\
+    \texttt{short\_duration}        & Recording $<$ min.\ duration                           & 30~s              \\
+    \texttt{sample\_rate\_unavailable} & Sample rate cannot be estimated                     & ---               \\
+    \texttt{sample\_rate\_unusual}  & Rate outside device range                              & 40--60~Hz         \\
+    \texttt{gaze\_low\_validity}    & Valid-gaze fraction below threshold                    & $< 0.70$          \\
+    \texttt{gaze\_out\_of\_bounds}  & Frame-OOB fraction above threshold (valid samples only)& $> 0.10$          \\
+    \texttt{pupil\_low\_coverage}   & Binocular pupil missing fraction above threshold       & $> 0.30$          \\
+    \texttt{pupil\_left\_low\_coverage}  & Left-eye missing fraction above threshold         & $> 0.30$          \\
+    \texttt{pupil\_right\_low\_coverage} & Right-eye missing fraction above threshold        & $> 0.30$          \\
+    \texttt{pupil\_implausible}     & Mean binocular diameter outside plausible range        & $<$1.5 or $>$9~mm \\
+    \texttt{pupil\_asymmetry\_large}& Mean $|$left $-$ right$|$ diameter above threshold    & $> 1.5$~mm        \\
+    \texttt{blink\_rate\_unusual}   & Estimated blink rate outside expected range            & $<$3 or $>$45/min \\
+    \texttt{pupil\_velocity\_spike} & Mean dilation velocity above threshold                 & $> 1.0$~mm/s      \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\paragraph{Usability tiers.}
+Based on the QC flags, each participant-task row is assigned usability labels:
+\emph{gaze-usable} (valid-fraction $\geq 0.70$ and no
+\texttt{gaze\_out\_of\_bounds} flag) and
+\emph{pupil-usable} (missing fraction $\leq 0.30$ and no
+\texttt{pupil\_implausible} flag).
+Analyses that rely on gaze-direction estimates use only gaze-usable rows;
+analyses that rely on pupil dilation use only pupil-usable rows.
+
+\paragraph{Features extracted.}
+For each usable participant-task window the pipeline computes:
+\emph{gaze statistics} (mean and standard deviation of $x$/$y$ position,
+gaze dispersion from the within-window centroid,
+mean and 95th-percentile frame-to-frame gaze velocity as a saccade-rate proxy,
+and the out-of-bounds fraction);
+\emph{pupil statistics} (binocular and per-eye mean, standard deviation,
+linear dilation slope, within-window range, and mean dilation velocity);
+and \emph{blink statistics} (estimated count, rate, and mean duration).
+All features are also computed over 30-second rolling windows (15-second step)
+to support temporal analysis.
+Pupil mean and gaze-position features are baseline-normalised using the T0
+resting-state recording, producing per-participant delta and z-score columns
+(e.g., \texttt{pupil\_mean\_delta\_t0}).
+
+\paragraph{Coverage.}
+% TODO: fill in from et_qc_summary.tsv after pipeline run.
+\textbf{TODO} participant-task blocks were processed.
+Of these, \textbf{TODO}\% passed the gaze-usability criterion and
+\textbf{TODO}\% passed the pupil-usability criterion.
+The most frequent flags were \textbf{TODO}.
+Per-session counts are reported in \cref{app:et_quality}.

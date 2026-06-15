@@ -1,0 +1,240 @@
+# AffectAI Pilot Protocol (Small Variant) Configuration
+# Version: 1.0
+# Purpose: MSc-level multimodal small-group interaction study
+# Tasks: T1-T4 (information pooling, negotiation, creativity, public-goods game)
+# Participants: 4 per session, 4-5 groups planned
+
+capture_workstation:
+  model: "Dell Precision 7860"
+  notes: |
+    Dedicated LSL acquisition machine. 
+    Prefer wired ethernet for synchronization stability. 
+    UPS-backed power for uninterrupted streaming.
+    CPU load target: <60% during recording (monitor via top).
+
+network:
+  switch: "NetGear M4250-12M2XF (Managed, PoE)"
+  ap: "Ubiquiti U6 Pro"
+  notes: |
+    Wired connections: Vicon DataStream, DPA interfaces, video capture.
+    Wi-Fi (2.4 GHz preferred): Tablets, Tobii sync (avoid congestion).
+    Synchronization: NTP server on workstation; all devices sync to workstation clock.
+    Bandwidth estimate: ~500 Mbps for 4× Tobii + Vicon + audio (baseline).
+
+storage:
+  local_ssd: "NVMe RAID (512 GB, OS + LSL buffers)"
+  nas: "UGREEN NASync DXP4800 Plus (20 TB)"
+  disk: "Toshiba N300 (rotational, archive-grade)"
+  backup: "Offsite encrypted daily snapshots"
+  notes: |
+    Do NOT store PII in repo. 
+    Export de-identified BIDS to controlled vault post-session.
+    Raw files: transfer to NAS immediately post-recording.
+    Verify checksums before anonymization.
+
+recording_duration:
+  setup_calibration: "15-20 min"
+  active_tasks: "50-60 min (T1: ~15 min, T2: ~15 min, T3: ~15 min, T4: ~10 min)"
+  debrief_questionnaires: "10 min"
+  total_per_session: "90-110 min"
+
+devices:
+  tobii_pro_glasses_3:
+    type: "eye_tracker"
+    description: "Per-participant wearable"
+    count: 4
+    outputs:
+      - "et/gaze"
+      - "et/pupil"
+      - "video/scene"
+    notes: |
+      Calibration pre-task (~3 min per participant).
+      Validation threshold: >0.5 gaze validity score during baseline.
+      Pupil metric: Exported from Tobii pipeline (units, confidence fields logged).
+      Scene video: 30 Hz, synchronized to LSL.
+
+  dpa_4060_microphone:
+    type: "audio_input"
+    description: "Close-talk dynamic microphone (4 per participant + 1 room spare)"
+    count: 5
+    outputs:
+      - "audio/dpa"
+    notes: |
+      4× lapel/boom-mounted at ~15 cm mouth distance (one per participant).
+      1× room spare (ambient / backup).
+      Preamplifier: RME Octamic or equivalent, 48 kHz @ 16-bit.
+      LSL stream: per-mic line-in, synchronized via audio interface clock.
+      Crosstalk rejection: <-30 dB target (validate per session).
+      Recorded on AV PC; clock reference sent to LSL on Recording PC.
+
+  jabra_panacast_50:
+    type: "ambient_audio"
+    description: "Room microphone array"
+    count: 1
+    outputs:
+      - "audio/room"
+    notes: |
+      Mounted on ceiling or high wall (~2 m above table).
+      Captures group ambience, speech overlap, background noise context.
+      USB or Dante connection (per interface); synchronized to LSL.
+
+  emotibit:
+    type: "physiological"
+    description: "Wearable multi-sensor (PPG, EDA, temperature) — one per participant"
+    count: 4
+    outputs:
+      - "physio/emotibit_ppg"
+      - "physio/emotibit_eda"
+      - "physio/emotibit_temp"
+    notes: |
+      Streams via EmotiBit Oscilloscope → UDP → LSL bridge.
+      Sampling: PPG 25 Hz, EDA 15 Hz, Temperature 7.5 Hz.
+      Placed on participant's wrist (non-dominant).
+      Recorded on Recording PC via LSL.
+
+  vicon_optical_system:
+    type: "motion_capture"
+    description: "Optical motion capture (6 cameras)"
+    count: 6
+    outputs:
+      - "mocap/vicon_markers"
+    notes: |
+      Minimal marker set: head (rigid body), shoulders, upper limbs (optional).
+      Participants wear glasses-mounted rigid body for head-in-world (Vicon) + eye-in-head (Tobii) fusion.
+      DataStream protocol: 100 Hz capture, NTP-synced to workstation.
+      Workspace validation: full table + participant movement ranges.
+
+  jabra_panacast_cameras:
+    type: "video_capture"
+    description: "Jabra PanaCast 20 / PanaCast 50 USB cameras"
+    count: 7
+    optional_extra: 2
+    outputs:
+      - "video/jabra_rgb"
+    notes: |
+      6 PanaCast 20 cameras (4 per-participant face + 1 top-front-center overview + 1 back-middle)
+      + 1 PanaCast 50 (room wide-angle).
+      2 optional extra cameras for backup / alternative angles.
+      30 Hz, 1080p. USB capture via ffmpeg_multicap on AV PC.
+      Exposure & WB locked via tools/lock_exposure.py before capture.
+      Clock reference sent to LSL on Recording PC.
+      Lighting: Consistent illumination (log lux @ start/end + any changes).
+
+  tablet_questionnaire:
+    type: "behavioral_input"
+    description: "Per-participant self-report interface (in-situ prompts)"
+    count: 4
+    outputs:
+      - "beh/tablet_va"
+      - "beh/tablet_probes"
+    notes: |
+      Custom app or web interface (HTML5 + Node-RED/Blender etc.).
+      Valence-Arousal 2D grid (continuous, 9-point or slider).
+      Rotating single-item cognitive probes (confidence, engagement, trust).
+      Prompting: Every 5 min or deferrable (low-burden policy).
+      Responses timestamped and logged to JSON or TSV (LSL reference).
+
+synchronization:
+  primary_timebase: "LSL (Lab Streaming Layer)"
+  clock_source: "Workstation NTP server (systemd-timesyncd or ntpd)"
+  video_sync_method: "Timestamp-stable GStreamer or hardware-triggered cameras"
+  vicon_sync: "DataStream over Ethernet, NTP-synced"
+  validation:
+    - "Clap/sync board at recording start (all video + audio + LSL)"
+    - "LSL clock drift tolerance: <100 ms over 1 hour"
+    - "Post-hoc timestamp reconstruction: validate video frame times vs. LSL"
+  notes: |
+    All devices synchronized to workstation LSL master.
+    No per-device local clocks; all timestamps exported relative to LSL epoch.
+    Video: Store frame index (frame number) in BIDS metadata for reconstruction.
+    Vicon: Store Vicon frame index for precise alignment.
+
+data_schema:
+  directory_structure: "BIDS (Brain Imaging Data Structure)"
+  event_schema:
+    file: "sub-XX/ses-YY/beh/sub-XX_ses-YY_events.tsv"
+    columns:
+      - "onset (seconds from session start)"
+      - "duration (in seconds)"
+      - "event_type (task_start, task_end, probe_displayed, response_logged, decision_made, etc.)"
+      - "task_label (T1, T2, T3, T4)"
+      - "participant_id (within session)"
+      - "value (outcome, decision, or NULL)"
+      - "notes (optional: deviations, behavioral markers)"
+    notes: |
+      Tab-separated values (TSV), BIDS-compliant.
+      All times relative to session start (recording trigger) in seconds.
+      Post-hoc conversion to LSL epoch timestamps via header metadata.
+
+preprocessing_pipeline:
+  stage_1_sync:
+    - "Verify clap/sync board visibility across all video streams"
+    - "Cross-correlate audio peaks (DPA <-> Jabra) to validate audio alignment"
+    - "Align Vicon DataStream frame indices to video frame indices"
+  stage_2_export:
+    - "Extract per-modality time series (audio, video, gaze, motion)"
+    - "Store BIDS NIFTI (if neuroimaging format required) or HDF5 (time series)"
+    - "Generate session metadata JSON (device config, signal quality, anomalies)"
+  stage_3_anonymization:
+    - "De-identify video: blur faces (except Tobii scene if needed), remove audio"
+    - "Hash participant IDs"
+    - "Archive raw files in access-controlled vault"
+
+behavioral_annotation_framework:
+  in_session_self_reports:
+    - "Valence-Arousal (V-A) grid responses (per prompt, ~5 min interval)"
+    - "Single-item cognitive/social probes (rotating: confidence, engagement, trust, fairness)"
+  pre_session_personality:
+    - "BFI-45 (Big Five Inventory, 45-item): personality traits"
+    - "Administered on tablet before task, ~8 min"
+  post_session_external_annotation:
+    - "GaMMA-inspired framework: polyadic conversation layers"
+    - "Layers: turn-taking, backchannels, overlaps, gaze coordination, affect expression"
+    - "Annotation unit: 30-60 sec clips or full task transcript (TBD post-pilot)"
+  notes: |
+    Annotation conducted offline on de-identified clips.
+    Multiple raters (inter-rater reliability assessment).
+    Label schema: preserved from main AffectAI protocol (see labels_codebook.md).
+
+quality_control:
+  per_session_checklist:
+    - "All four Tobii glasses calibration validation scores >0.5"
+    - "DPA audio: <-30 dB crosstalk, SNR >20 dB"
+    - "Ceiling video: full upper-body framing, no motion blur"
+    - "Vicon markers: continuous tracking >95% of session duration"
+    - "Tablet responses: received all expected prompts + timestamps valid"
+  post_session_reports:
+    - "Signal quality summary (per modality, per participant)"
+    - "Synchronization drift report (LSL vs. video, Vicon vs. video)"
+    - "Anomalies logged: hardware resets, calibration drifts, environmental disturbances"
+  archive_criteria:
+    - "Checksum verification (SHA256) post-transfer"
+    - "Bitrate & file size sanity checks"
+    - "Spot checks: manual inspection of 1st, mid, last 5 min of video + audio"
+
+notes_and_constraints:
+  task_constraints:
+    - "T1: ~15 min, information pooling task (consensus on factual problem)"
+    - "T2: ~15 min, negotiation task (distribute resources, concessions)"
+    - "T3: ~15 min, creativity task (idea generation, ranking, selection)"
+    - "T4: ~10 min, public-goods game (contribution decision, fairness evaluation)"
+  behavioral_protocol:
+    - "Moderator delivers standardized instructions (verbatim, no paraphrasing)"
+    - "Event log: task_start, task_end, decision_made, settlement (T2 only)"
+    - "Deviations from script: logged with rationale (post-session)"
+  participant_burden:
+    - "Total session: <75 min (within ethics approval)"
+    - "Tablet prompting: capped at 8-10 responses per session (deferrable)"
+    - "Self-annotation: brief post-task reflection (<5 min)"
+  environmental_logging:
+    - "Illuminance (lux) at start, end, + marked changes"
+    - "Ambient temperature, humidity (continuous or ~5 min intervals)"
+    - "Ambient noise level (dB SPL, room-level)"
+  hardware_redundancy:
+    - "Backup USB audio interface (secondary DPA channels)"
+    - "Backup ceiling camera (test in session 1)"
+    - "Backup tablet (pre-loaded app, validated)"
+  team_training:
+    - "All operators: briefed on session flow, consent, safety"
+    - "Lead Operator: familiar with LSL troubleshooting, checksum verification"
+    - "Moderator: rehearsed task scripts, time-keeping drills"

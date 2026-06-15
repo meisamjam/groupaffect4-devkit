@@ -1,0 +1,1042 @@
+%% icmi2026_preprocessing_temporal.tex
+%% Target: 8-page ICMI/CSMI workshop paper on preprocessing and temporal modelling.
+%%
+%% Compile:
+%%   pdflatex icmi2026_preprocessing_temporal
+%%   bibtex   icmi2026_preprocessing_temporal
+%%   pdflatex icmi2026_preprocessing_temporal
+%%   pdflatex icmi2026_preprocessing_temporal
+
+\documentclass[sigconf,review,anonymous]{acmart}
+
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{microtype}
+
+\acmConference[CSMI '26]{Workshop on Collective States in Multimodal Interaction (CSMI)}
+  {October 2026}{Naples, Italy}
+\acmYear{2026}
+\copyrightyear{2026}
+\settopmatter{printacmref=false}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+\pagestyle{plain}
+
+\definecolor{bestcol}{HTML}{1a6e1a}
+\newcommand{\best}[1]{\textbf{\textcolor{bestcol}{#1}}}
+
+\title{From Windows to Sequences: Preprocessing and Temporal Modeling Lessons
+from GroupAffect-4}
+
+\author{Anonymous Authors}
+\affiliation{\institution{Anonymous Institution}}
+\email{anon@example.com}
+
+\begin{document}
+
+\begin{abstract}
+In small physiological affect datasets, preprocessing choices can dominate
+model architecture.
+This paper studies that effect in GroupAffect-4, a collaborative group dataset
+with wearable physiology, eye tracking, and sparse Valence--Arousal--Dominance
+self-reports.
+Using a fixed train/validation/test split and training-only preprocessing
+calibration, we compare 15s, 30s, 45s, and 60s temporal contexts; full-feature
+and modality-selective smoothing; drop-one-modality ablations; enhanced
+gaze/pupil feature extraction; optional speech feature inclusion; and
+per-modality temporal encoders with SimCLR/MSM pre-training.
+The strongest balanced preprocessing recipe smooths only EDA and PPG features
+with centred 45s context while leaving gaze, pupil, and IMU unsmoothed,
+improving all VAD dimensions over the unaugmented 15s baseline
+($V=0.600$, $A=0.624$, $D=0.436$).
+Reprocessing gaze and pupil features from raw sequences with improved NaN
+handling changes the Dominance trade-off (up to $D=0.492$ in unsmoothed
+all-modality v2), but under canonical centred-smoothing comparisons the
+confirmed single-pipeline best remains $0.553$ mean macro-F1.
+Adding speech to the v2 all-modality feature set does not improve this
+benchmark and is therefore treated as a secondary analysis rather than a
+default recipe.
+A per-dimension canonical upper bound reaches $0.561$ and is reported as
+exploratory.
+Modality ablations show that IMU is the largest arousal contributor, followed
+by EDA and PPG.
+Temporal Conv1D and BiGRU models are trainable but do not beat the SVM
+baseline as single shared configurations; however, SimCLR pre-training on
+unlabelled sequences enables per-dimension configurations to exceed SVM+AP1 on
+Arousal and Dominance.
+The results motivate a practical recipe: use modality-aware preprocessing as
+the default benchmark, and treat temporal self-supervision as a separate
+sequence-modelling track requiring validation-only configuration selection.
+\end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+  <concept>
+    <concept_id>10010147.10010257.10010293</concept_id>
+    <concept_desc>Computing methodologies~Machine learning approaches</concept_desc>
+    <concept_significance>500</concept_significance>
+  </concept>
+  <concept>
+    <concept_id>10003120.10003121.10003129</concept_id>
+    <concept_desc>Human-centered computing~Collaborative interaction</concept_desc>
+    <concept_significance>300</concept_significance>
+  </concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Computing methodologies~Machine learning approaches}
+\ccsdesc[300]{Human-centered computing~Collaborative interaction}
+
+\keywords{physiological preprocessing, temporal modelling, wearable sensing,
+SimCLR, EDA, PPG, IMU, affect recognition}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:intro}
+
+Physiological affect recognition is often framed as a modelling problem:
+given enough sensor streams, a sufficiently expressive temporal model should
+learn affective state.
+In sparse-label datasets, that framing is incomplete.
+When only a few hundred labelled windows are available, the representation
+presented to the model--window size, smoothing, feature aggregation, and split
+isolation--can matter as much as the architecture itself.
+
+This paper studies preprocessing and temporal modelling in the
+GroupAffect-4 benchmark.
+We ask two questions:
+(1) what temporal context should physiological features use, and
+(2) when do raw-sequence encoders add value beyond summary features?
+We intentionally treat these as separate questions because they operate at
+different levels of the pipeline.
+Windowing and smoothing define what the supervised learner is allowed to see.
+Temporal encoders define how that information is represented once the input
+space has been fixed.
+Conflating the two can lead to misleading conclusions: a neural sequence model
+may appear weak simply because the 15s feature windows truncate slow EDA
+responses, while an SVM may appear strong because handcrafted features already
+encode the relevant temporal context.
+
+The goal is therefore not to produce a single leaderboard winner.
+Instead, we use GroupAffect-4 as a compact but realistic benchmark for small
+group physiology: few labelled affect reports, many unlabelled sensor windows,
+heterogeneous modalities, and strong temporal structure.
+This setting is common in field and lab studies of collaboration, where
+self-report must remain sparse to avoid interrupting interaction.
+
+Our contributions are:
+\begin{itemize}[leftmargin=1.2em,itemsep=1pt,topsep=2pt]
+  \item We compare hard-pooled windows, full-feature smoothing, and
+  modality-selective smoothing under a shared SVM benchmark.
+  \item We show that smoothing slow EDA/PPG features while preserving fast
+  gaze, pupil, and IMU features improves all VAD dimensions over the
+  unaugmented 15s baseline while preserving sample count.
+  \item We specify the AP1 pseudo-label augmentation protocol used in this
+  paper so the recipe is self-contained and reproducible.
+  \item We quantify modality contributions and show that IMU is the dominant
+  arousal carrier in the current physiology-only feature set.
+  \item We evaluate Conv1D and BiGRU temporal encoders, sequence augmentation,
+  and SimCLR/MSM pre-training as an exploratory temporal modelling track.
+\end{itemize}
+
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Physiological affect recognition.}
+Benchmark corpora including DEAP~\cite{koelstra2012deap},
+WESAD~\cite{schmidt2018wesad}, DREAMER~\cite{katsigiannis2018dreamer}, and
+MAHNOB-HCI~\cite{soleymani2012mahnob} established dimensional affect prediction
+from EDA, cardiac, and wearable physiological signals.
+Reviews confirm that EDA and cardiovascular responses are informative but
+highly sensitive to preprocessing and splitting
+choices~\cite{shu2018review,ahmad2022survey,kreibig2010autonomic}.
+EDA phasic SCR responses unfold over 5--30 seconds, making window length a
+first-order modelling choice rather than a tuning detail.
+Pupil and gaze dynamics reflect cognitive load and arousal at faster
+timescales~\cite{partala2003pupil,laeng2012pupillometry},
+and body movement carries engagement and arousal signals in social
+settings~\cite{karg2013body}.
+These modality-specific timescale differences motivate this paper's central
+hypothesis: a single window size and smoothing rule applied uniformly across
+modalities is suboptimal.
+
+\paragraph{Group and social affect datasets.}
+K-EmoCon~\cite{park2020kemocon} and RECOLA~\cite{ringeval2013introducing}
+contributed naturalistic dyadic interaction datasets with wearable sensors;
+AMIGOS~\cite{mirandacorrea2021amigos} explicitly studied affect and personality
+in group and individual conditions.
+Meeting and social-signal corpora (AMI~\cite{mccowan2005ami},
+SALSA~\cite{alameda2015salsa},
+MatchNMingle~\cite{cabrera2018matchnmingle},
+ELEA~\cite{sanchez2012emergent},
+UDIVA~\cite{palmero2021context}) capture group behaviour, leadership, and
+interaction dynamics.
+GroupAffect-4~\cite{groupaffect4} adds per-person wearable physiology, Tobii
+eye tracking, and post-task VAD self-reports to four-person structured
+collaboration, occupying the intersection of physiological affect prediction
+and group interaction research.
+
+\paragraph{Self-supervised and semi-supervised learning for wearables.}
+Time-series augmentation improves wearable classifiers at small label
+counts~\cite{um2017data,iwana2021augmentation}.
+Contrastive methods such as TS-TCC~\cite{eldele2021tscc} learn representations
+from unlabelled physiological segments; SimCLR-style contrastive
+pre-training~\cite{chen2020simclr} rewards invariance across augmented views of
+the same window and has shown benefit in low-label regimes.
+Semi-supervised approaches including Mean Teacher~\cite{tarvainen2017mean} and
+FixMatch~\cite{sohn2020fixmatch} confirm that unlabelled data help only when
+pseudo-label confidence is reliable~\cite{lee2013pseudo},
+a finding directly relevant to our temporal pre-training track.
+GroupAffect-4 provides a useful stress test: over 8\,000 unlabelled windows
+but only 103 labelled training windows in the canonical split.
+
+\paragraph{Personality and affect dynamics.}
+The Big Five (BFI-44)~\cite{john1999bigfive} is the dominant trait
+taxonomy for predicting affect.
+ASCERTAIN~\cite{subramanian2018ascertain} and AMIGOS~\cite{mirandacorrea2021amigos}
+show that personality shapes physiological affect responses.
+\citet{meng2026moderating} demonstrated trait-specific moderation timescales
+in VAD dynamics during real interaction, motivating per-dimension modality
+conditioning.
+Emotional contagion~\cite{hatfield1993emotional} provides the social
+mechanism underlying cross-person label transfer in the AP1 protocol used
+here.
+
+\paragraph{Preprocessing as implicit modelling.}
+In physiological affect recognition, preprocessing is often described as a
+technical prelude to modelling.
+For small datasets, it is more accurate to view preprocessing as part of the
+model class.
+A 15s mean EDA feature, a 45s centred EDA feature, and a raw 200-step EDA
+sequence encode different assumptions about how long affective information
+persists and how quickly labels should change.
+Those assumptions can dominate the downstream learner when the number of
+labelled windows is small.
+
+\paragraph{Leakage and deployment time.}
+Temporal smoothing also changes the evaluation question.
+Centred smoothing uses both past and future neighbouring windows and is valid
+for offline analysis, post-hoc annotation support, and dataset benchmarking.
+It is not an online recipe for real-time intervention unless the future context
+is replaced by a causal filter.
+Throughout this paper, all scalers, thresholds, and class weights are fitted on
+training windows only; when centred smoothing is used, it is described as an
+offline preprocessing choice rather than an online claim.
+This distinction is especially important for reproducible benchmarking because
+the same score can imply very different deployment assumptions.
+
+\section{Dataset and Features}
+\label{sec:dataset}
+
+GroupAffect-4~\cite{groupaffect4} contains 39 complete participants
+(10 four-person groups) recorded across five sequential tasks:
+\textbf{T0} (passive rest), \textbf{T1} (information pooling),
+\textbf{T2} (negotiation), \textbf{T3} (ideation), and
+\textbf{T4} (public-goods game).
+After each task, participants rated affect using the 9-point
+Self-Assessment Manikin (SAM)~\cite{bradley1994sam} on Valence (V),
+Arousal (A), and Dominance (D).
+Each participant also completed the BFI-44~\cite{john1999bigfive}
+before the session.
+T4 did not administer a Dominance probe; T4 Dominance is therefore
+excluded from all metrics.
+
+Physiological and oculomotor signals were recorded from two wearable platforms
+(Table~\ref{tab:devices}).
+EmotiBit~\cite{makowski2021neurokit2} captured EDA, PPG (Green channel, best
+SNR), skin temperature, and 6-axis IMU at $\sim$25\,Hz.
+EDA was decomposed via cvxEDA~\cite{greco2016cvxeda} into phasic (SCR) and tonic
+(SCL) components; HR and HRV (RMSSD, SDNN) were re-derived from raw PPG
+peaks~\cite{elgendi2013systolic} after correcting a firmware unit
+error in the original dataset release
+(HR was stored at $\times\!\tfrac{1}{200}$ scale).
+Each participant wore a Tobii Pro Glasses 3 unit (40--60\,Hz) for gaze and
+pupil signals; invalid samples were forward-filled and bilateral pupil diameter
+averaged across valid samples.
+
+\begin{table}[t]
+\caption{Recording devices and feature counts. Summary dims = handcrafted
+features used by SVM baselines; Seq.\ dims = raw channels for temporal encoders.}
+\label{tab:devices}
+\centering
+\setlength{\tabcolsep}{3pt}
+\small
+\begin{tabular}{lp{1.5cm}ccc}
+\toprule
+\textbf{Modality} & \textbf{Device} & \textbf{Rate} &
+  \textbf{Sum.} & \textbf{Seq.} \\
+\midrule
+Gaze/fixation & Tobii G3 & 40--60\,Hz & 6  & 9 \\
+Pupil/blink   & Tobii G3 & 40--60\,Hz & 7  & 3 \\
+EDA           & EmotiBit & $\sim$25\,Hz & 13 & 5 \\
+PPG/HRV       & EmotiBit & $\sim$25\,Hz & 7  & 3 \\
+IMU           & EmotiBit & $\sim$25\,Hz & 16 & 6 \\
+\midrule
+Total         & --       & --          & 49 & 26 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+We use training-fitted midpoint-tertile labels and per-dimension
+inverse-frequency class weights (fitted on training data only).
+The canonical split is T0+T1 train ($N{=}103$), T2 validation ($N{=}78$),
+and T3 test ($N{=}65$).
+All reported scores are macro-F1 over three affect classes per dimension.
+We report per-dimension scores because each VAD dimension is expected to have
+different physiological carriers and temporal scales.
+
+\begin{table}[t]
+\caption{Canonical split. Task order is temporal; test labels are always later
+than training labels but belong to the same known teams.}
+\label{tab:split}
+\centering
+\setlength{\tabcolsep}{4pt}
+\small
+\begin{tabular}{llcc}
+\toprule
+\textbf{Split} & \textbf{Tasks} & \textbf{$N$} & \textbf{Role} \\
+\midrule
+Train      & T0 + T1 & 103 & Fit models, thresholds, scalers \\
+Validation & T2      &  78 & Select configurations \\
+Test       & T3      &  65 & Final held-out evaluation \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{AP1 augmentation protocol used in this paper.}
+AP1 denotes a fixed pseudo-labelled pool generated from training-task data
+using Gaussian-process (GP) posteriors and personality-based trust weights
+\cite{rasmussen2006gaussian,lee2013pseudo,john1999bigfive}.
+For each VAD dimension, GP posteriors are mapped to Low/Mid/High classes using
+training-fitted thresholds only.
+Accepted unlabelled windows are merged with labelled training windows as
+\begin{equation}
+  \mathcal{D}_{aug}=\mathcal{D}_{L}\cup\mathcal{D}_{U},
+\end{equation}
+where each pseudo-labelled sample has weight
+$\alpha_u=\mathrm{BFI\_sim}_u\in[0,1]$.
+For participant $i$ in group $G$, the trust weight is
+\begin{equation}
+  \mathrm{BFI\_sim}_i=
+  \frac{1}{|G|-1}\sum_{j\neq i}
+  \frac{\mathbf{b}_i\cdot\mathbf{b}_j}{\|\mathbf{b}_i\|\|\mathbf{b}_j\|},
+\end{equation}
+where $\mathbf{b}_i$ is the BFI trait vector.
+No T3 labels are used for pseudo-label generation, threshold fitting, scaler
+fitting, or model selection.
+In this paper AP1 is used as a fixed augmentation input, not tuned on the T3
+test task.
+
+\paragraph{Sequence representation.}
+For temporal models, each modality is resampled independently to
+$T=200$ timepoints per 15s window by piecewise linear interpolation.
+This gives an effective temporal grid of approximately 13.3 Hz, sufficient for
+the low-frequency physiological bands considered here.
+Windows with too few valid raw samples in a modality are zero-filled for that
+modality rather than interpolated from unreliable data.
+The resulting tensor is represented as five modality-specific arrays:
+\begin{equation}
+  \mathbf{X} =
+  \{\mathbf{X}^{gaze}_{T\times 9},
+    \mathbf{X}^{pupil}_{T\times 3},
+    \mathbf{X}^{EDA}_{T\times 5},
+    \mathbf{X}^{PPG}_{T\times 3},
+    \mathbf{X}^{IMU}_{T\times 6}\}.
+\end{equation}
+Sequence scalers fit a global mean and standard deviation on training windows
+only, concatenating over time within each modality.
+Validation, test, and unlabelled pool windows reuse those training parameters.
+
+\section{Windowing and Smoothing}
+\label{sec:windowing}
+
+We evaluate three preprocessing families.
+\textbf{Hard pooling} merges neighbouring 15s windows into longer contexts,
+reducing the number of training samples.
+\textbf{Full-feature smoothing} averages all feature groups with temporal
+neighbours while preserving the original sample count.
+\textbf{Physio-selective smoothing} averages only EDA and PPG features, leaving
+gaze, pupil, and IMU untouched.
+The distinction between pooling and smoothing matters: pooling changes both the
+effective context and the number of supervised examples, while smoothing changes
+the feature estimate but keeps the same label count.
+At this scale, losing labelled examples can be as damaging as improving signal
+quality.
+
+\paragraph{Hard pooling.}
+The 30s and 45s pooled settings merge consecutive 15s windows before feature
+aggregation.
+This is useful for slow autonomic responses but reduces the number of labelled
+training examples from 103 to 74 and 57, respectively.
+The 60s exact setting uses longer extraction context without the same
+neighbour-merge rule and is included as a dilution check.
+Formally, for adjacent 15s feature vectors $\mathbf{x}_{i}$ and
+$\mathbf{x}_{i+1}$ within the same participant and task, the pooled 30s feature
+is computed from the raw signal over the union interval rather than by simply
+averaging the two feature vectors when a raw-signal extractor is available.
+This matters for nonlinear features such as SCR peak count and HRV dispersion.
+The price is that the number of supervised windows decreases.
+
+\paragraph{Full-feature smoothing.}
+Full smoothing averages each window's feature vector with nearby windows.
+Forward smoothing is compatible with causal deployment, while centred smoothing
+uses both previous and next windows and is therefore an offline recipe.
+The hypothesis is that more stable estimates of noisy physiological features
+should improve Arousal and Dominance, but this may blur fast oculomotor and
+movement signals.
+For a feature $f_{i}$ at window $i$, centred 45s smoothing uses
+\begin{equation}
+  \tilde{f}_{i} = \frac{1}{3}\left(f_{i-1}+f_i+f_{i+1}\right),
+\end{equation}
+within the same participant and task, with boundary windows using the available
+neighbours only.
+Forward smoothing replaces $f_{i+1}$ with the next available past window and is
+therefore causal.
+
+\paragraph{Physio-selective smoothing.}
+The modality-selective variant applies the same temporal averaging only to EDA
+and PPG/HRV features.
+Gaze, pupil, and IMU features remain the original 15s estimates.
+This implements a simple prior: slow autonomic signals benefit from a longer
+effective context, while fast behavioural and oculomotor signals should retain
+their local variation.
+
+Table~\ref{tab:window} shows that there is no universal best window.
+Hard-pooled 30s windows maximise Arousal but reduce Valence and training $N$.
+Full-feature smoothing improves Arousal but damages Valence.
+Physio-selective smoothing resolves the conflict: centred 45s EDA+PPG
+smoothing with AP1 augmentation improves all three VAD dimensions while
+retaining $N=103$.
+
+\begin{table}[t]
+\caption{Window size and smoothing ablation with RBF-SVM.}
+\label{tab:window}
+\centering
+\setlength{\tabcolsep}{3.5pt}
+\small
+\begin{tabular}{llcccc}
+\toprule
+\textbf{Window} & \textbf{Aug} & \textbf{$N$} & \textbf{V} & \textbf{A} & \textbf{D} \\
+\midrule
+15s default       & none & 103 & 0.570 & 0.530 & 0.385 \\
+15s               & AP1  & 103 & \best{0.608} & 0.535 & 0.435 \\
+30s pooled        & none & 74  & 0.477 & \best{0.662} & \best{0.452} \\
+45s pooled        & none & 57  & 0.468 & 0.404 & 0.413 \\
+60s exact         & none & 103 & 0.458 & 0.519 & 0.364 \\
+\midrule
+Smooth-45s all    & AP1  & 103 & 0.517 & 0.640 & 0.434 \\
+Physio-30s        & AP1  & 103 & 0.586 & 0.599 & 0.435 \\
+\best{Physio-45s} & AP1  & 103 & 0.600 & 0.624 & 0.436 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Interpretation.}
+The best result depends on the target dimension.
+If the goal is maximum Arousal alone, 30s hard pooling is strongest
+($A=0.662$), consistent with SCR and pulse features needing more than one 15s
+segment.
+If the goal is maximum Valence, the original 15s AP1 recipe remains strongest
+($V=0.608$), suggesting that local gaze, pupil, and movement statistics already
+capture much of the relevant valence variation.
+For a balanced devkit benchmark, however, physio-selective 45s smoothing is the
+most defensible default because it improves all dimensions over the unaugmented
+15s baseline while preserving the full labelled sample count.
+
+\section{Modality Contributions}
+\label{sec:modality}
+
+Drop-one-modality ablations (Table~\ref{tab:modality}) show that IMU is the
+largest contributor in the physiology-only feature set, driven by Arousal.
+EDA and PPG contribute comparably; pupil and gaze are less important after
+other autonomic and motion features are present.
+
+\begin{table}[t]
+\caption{Drop-one modality ablation, no augmentation. $\Delta$ is mean-F1 drop
+relative to the full model.}
+\label{tab:modality}
+\centering
+\setlength{\tabcolsep}{4pt}
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Drop} & \textbf{V} & \textbf{A} & \textbf{D} & $\Delta$ \\
+\midrule
+None full  & 0.414 & 0.481 & 0.516 & -- \\
+Gaze       & 0.489 & 0.477 & 0.377 & $-0.023$ \\
+Pupil      & 0.464 & 0.479 & 0.360 & $-0.036$ \\
+EDA        & 0.402 & 0.435 & 0.296 & $-0.093$ \\
+PPG        & 0.396 & 0.411 & 0.323 & $-0.094$ \\
+\best{IMU} & 0.431 & 0.269 & 0.361 & $\mathbf{-0.117}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This pattern is consistent with collaborative tasks: wrist acceleration and
+gyroscope features capture movement bursts, gestures, and engagement-related
+motor activity.
+The result does not imply that pupil or gaze are uninformative in general; it
+shows that their marginal contribution is smaller once EDA, PPG, and IMU are
+available in this dataset.
+It also helps explain the smoothing results.
+The largest Arousal gains come from stabilising slow autonomic features, but
+the largest modality drop is IMU because movement is a strong marker of group
+engagement in T3.
+Smoothing IMU would therefore remove precisely the short bursts that make it
+useful.
+The preprocessing recommendation is consequently not ``smooth physiology''
+in a broad sense; it is specifically to smooth EDA and PPG while preserving
+movement features.
+
+
+\section{Enhanced Gaze and Pupil Features}
+\label{sec:v2_features}
+
+The original 49-dimensional feature set uses basic summary statistics for gaze
+(6 features: mean/std of $x$, $y$, validity rate, saccade proxy) and pupil
+(7 features: mean/std of left, right, average diameter, blink rate proxy).
+These are adequate for a baseline, but they discard the rich temporal dynamics
+available in the raw Tobii G3 sequences.
+
+We recompute gaze and pupil features from the stored 200-point per-window
+sequences using signal-processing methods appropriate for the effective 13.3~Hz
+sampling rate.
+The enhanced gaze features (22 total) include fixation count, duration
+statistics, dispersion, saccade count and amplitude, scanpath length and convex
+hull area, spatial entropy, transition rate, and quadrant dwell proportions.
+The enhanced pupil features (18 total) include blink rate and duration,
+inter-blink intervals, LHIPA (Low/High-frequency Index of Pupillary Activity),
+pupil derivatives, RMSSD, slope, range, skewness, kurtosis, and median.
+
+\paragraph{Feature selection under the curse of dimensionality.}
+We evaluate both full all-modality and reduced v2 feature sets.
+The full all-modality representation has 82 features
+(22 gaze $+$ 18 pupil $+$ 36 EDA/PPG/IMU $+$ 6 speech), while the
+physio-only variant has 76 (same set without speech).
+For augmentation-compatible comparisons, we additionally use the 47-feature
+intersection shared between the v2 dataset and the AP1 pool.
+A data-lineage audit explains the previously inconsistent train count: the v2
+file was generated from the speech-enriched dataset file
+(296 windows, T0+T1 train $=105$), whereas the canonical benchmark uses
+\texttt{dataset\_15s.pkl} (292 windows, T0+T1 train $=103$).
+The extra four windows (two in train) were inherited from the speech-enriched
+pickle lineage and were not an intended protocol change.
+
+\begin{table}[t]
+\caption{Effect of enhanced gaze/pupil reprocessing on Dominance.
+All rows use centred EDA/PPG smoothing on the T3 test split;
+the all-modality row includes speech features (82 total).}
+\label{tab:v2_dominance}
+\centering
+\setlength{\tabcolsep}{4pt}
+\small
+\begin{tabular}{p{0.42\columnwidth}cccc}
+\toprule
+\textbf{Feature set} & \textbf{V} & \textbf{A} & \textbf{D} & \textbf{Mean} \\
+\midrule
+Orig 49 + AP1 (smooth)           & 0.600 & 0.624 & 0.436 & 0.553 \\
+V2 shared-47 (smooth, no AP1)    & 0.552 & 0.568 & 0.435 & 0.518 \\
+V2 shared-47 + AP1 (smooth)      & 0.526 & \best{0.624} & \best{0.460} & 0.537 \\
+V2 all-modal 82 (smooth, no AP1) & 0.460 & 0.514 & 0.416 & 0.463 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:v2_dominance} reveals that the v2 reprocessing dramatically
+changes the VAD trade-off under the canonical split.
+The shared-47 smooth setting does not improve Dominance over the original
+smooth+AP1 baseline (0.435 vs.
+0.436), while shared-47+AP1 recovers Dominance to 0.460 at the expense of
+Valence.
+The improvement comes not from new feature \emph{types} but from cleaner
+feature \emph{values}: recomputing basic statistics (gaze\_x\_mean,
+pupil\_avg\_std, etc.) directly from the stored sequences with proper NaN
+interpolation produces more reliable estimates.
+The all-modality 82-feature row confirms modality coverage but does not exceed
+the shared-47 Dominance result, consistent with small-sample variance and
+cross-modality dilution at this dataset size.
+
+\paragraph{Speech inclusion decision.}
+Speech is retained as an optional modality analysis, but it is not promoted to
+the default benchmark recipe.
+Under matched centred-smoothing comparisons in
+Table~\ref{tab:v2_dominance}, the all-modality 82-feature setting (with speech)
+does not outperform the shared-47 or original-49 recipes in mean macro-F1.
+For this reason, all headline recipes in this paper remain physiology-first,
+with speech reported as secondary evidence.
+
+For benchmark comparability, all headline claims in this paper are anchored
+to the canonical T0+T1/T2/T3 protocol (train $=103$).
+
+AP1 effects on v2 rows are sensitive to preprocessing compatibility because
+the augmentation pool was generated with the original pipeline.
+This distributional mismatch can dilute gains and changes sign across settings,
+especially for Dominance.
+This motivates the per-dimension recipe below.
+
+\subsection{Per-Dimension Optimized Recipe}
+\label{sec:perdim_recipe}
+
+The preprocessing and augmentation findings have complementary strengths
+across VAD dimensions.
+Table~\ref{tab:perdim_recipe} reports both a confirmed single-pipeline result
+and a per-dimension upper bound.
+
+\begin{table}[t]
+\caption{Per-dimension optimized preprocessing recipe. Each dimension uses its
+best-matched combination of feature processing and augmentation.}
+\label{tab:perdim_recipe}
+\centering
+\setlength{\tabcolsep}{4pt}
+\small
+\begin{tabular}{llcccc}
+\toprule
+\textbf{Dimension} & \textbf{Recipe} & \textbf{V} & \textbf{A} & \textbf{D} & \textbf{Mean} \\
+\midrule
+Valence & Orig + smooth + AP1 & \best{0.600} & -- & -- & -- \\
+Arousal & Orig + smooth + AP1 & -- & \best{0.624} & -- & -- \\
+Dominance & V2 + smooth + AP1 & -- & -- & \best{0.460} & -- \\
+\midrule
+\multicolumn{2}{l}{Per-dim upper bound (exploratory)} & 0.600 & 0.624 & 0.460 & 0.561 \\
+\multicolumn{2}{l}{\best{Confirmed single-pipeline (R2a)}} & \best{0.600} & \best{0.624} & 0.436 & \best{0.553} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The per-dimension row should be interpreted as an exploratory upper bound.
+Each component still follows a mechanistic hypothesis:
+\begin{itemize}[leftmargin=1.2em,itemsep=1pt,topsep=2pt]
+  \item \textbf{Valence/Arousal}: These dimensions benefit from AP1 because
+  personality similarity carries information about affective appraisal
+  while preserving training-task split isolation. The pool features match the
+  original preprocessing.
+  \item \textbf{Dominance}: This dimension benefits from cleaner gaze/pupil
+  feature extraction. Under centred smoothing, v2+AP1 recovers Dominance to
+  0.460, but this still underperforms the strongest unsmoothed v2-D setting;
+  this sensitivity indicates a distribution-matching issue between pool
+  generation and reprocessed features.
+\end{itemize}
+
+It demonstrates that preprocessing and augmentation interact differently
+per dimension, but confirmatory reporting should use the single-pipeline
+R2a value unless per-dimension selection is pre-registered on validation.
+
+\section{Temporal Encoders}
+\label{sec:temporal}
+
+We evaluate per-modality Conv1D and BiGRU encoders over resampled raw
+sequences.
+The original two-track implementation zero-padded temporal inputs for
+unlabelled pool windows; later inspection showed that pool sequences are
+available, enabling corrected v2 training and self-supervised pre-training.
+We keep both generations as useful baselines.
+
+\paragraph{Architectures.}
+The Conv1D encoder uses two strided temporal convolution layers per modality,
+followed by global average pooling to produce a 32-dimensional embedding.
+The BiGRU encoder uses a bidirectional recurrent layer per modality and mean
+pools hidden states to produce a 64-dimensional embedding.
+In both cases, modality embeddings are concatenated with the 49-dimensional
+summary vector before the VAD prediction heads.
+This hybrid design lets the model use raw temporal traces without discarding
+the robust handcrafted statistics used by the SVM baseline.
+
+\paragraph{Sequence augmentation.}
+For labelled windows, v2 training applies lightweight time-domain
+augmentation: Gaussian noise, amplitude jitter, and circular time shifts.
+These perturbations are intentionally conservative because physiological
+signals are not image-like; large time warps or amplitude changes can destroy
+the relation between window and self-report.
+The aim is regularisation, not synthetic label expansion.
+
+\paragraph{Two uses of the unlabelled pool.}
+The unlabelled pool can enter the pipeline in two different ways.
+Label-space augmentation assigns GP-derived soft labels to pool windows and
+mixes them into supervised training.
+Representation pre-training uses pool sequences without labels, then fine-tunes
+on the 103 labelled training windows.
+The temporal experiments show that these roles should not be treated as
+interchangeable: the pool is often more valuable for learning sequence
+invariances than for adding many noisy supervised examples.
+
+\paragraph{Pre-training objectives.}
+The SimCLR condition samples two augmented views of the same multimodal window
+and trains the encoder with an NT-Xent contrastive loss.
+The positive pair is the same window under different perturbations; negatives
+are other windows in the batch.
+The MSM condition masks contiguous temporal chunks and reconstructs the held-out
+values from the remaining context.
+SimCLR therefore rewards invariance to mild temporal distortions, whereas MSM
+rewards local predictive reconstruction.
+The difference matters for affect: slow dominance-like state information may be
+better preserved by contrastive identity, while short phasic dynamics may be
+well served by reconstruction.
+
+No single temporal configuration beats SVM+AP1 in mean F1
+(Table~\ref{tab:temporal}), but corrected sequence use and augmentation close
+much of the gap.
+GRU benefits strongly from SimCLR pre-training on the full unlabelled pool in
+the exploratory v3 run, especially for Dominance.
+
+\begin{table}[t]
+\caption{Temporal encoder comparison on the T3 holdout.}
+\label{tab:temporal}
+\centering
+\setlength{\tabcolsep}{4pt}
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Model} & \textbf{V} & \textbf{A} & \textbf{D} \\
+\midrule
+MLP summary, no aug       & 0.568 & 0.505 & 0.375 \\
+Conv1D v1, no aug         & 0.505 & 0.477 & 0.356 \\
+GRU v1, no aug            & 0.449 & \best{0.592} & 0.385 \\
+\midrule
+Conv1D v2 + seqaug        & 0.511 & 0.513 & 0.429 \\
+Conv1D v2 + seqaug + AP1  & 0.445 & 0.526 & 0.395 \\
+GRU v2 + seqaug + AP1     & 0.459 & 0.500 & 0.454 \\
+\midrule
+Conv1D + SimCLR           & 0.601 & 0.506 & 0.351 \\
+GRU + SimCLR              & 0.460 & 0.536 & \best{0.520} \\
+\midrule
+SVM + AP1 reference       & \best{0.608} & 0.535 & 0.435 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Pre-training Factorial}
+\label{sec:factorial}
+
+To separate architecture, pre-training, and fine-tuning augmentation effects,
+we ran a $2\times3\times3$ factorial over encoder (Conv1D/GRU), pre-training
+(none, SimCLR, MSM), and fine-tuning augmentation (none, default, time-warp).
+The stricter factorial uses only the 3,127 windows from training tasks for
+pre-training.
+
+Table~\ref{tab:factorial} reports the best per-dimension configurations.
+SimCLR is the strongest pre-training method on average, with the gain
+concentrated in Dominance.
+The important practical result is not that one temporal model wins globally;
+it is that each VAD dimension prefers a different temporal recipe.
+
+\begin{table}[t]
+\caption{Factor-level marginal means from the temporal factorial. Each entry
+averages over the other factors and three random seeds.}
+\label{tab:factor_marginals}
+\centering
+\setlength{\tabcolsep}{4pt}
+\small
+\begin{tabular}{llcccc}
+\toprule
+\textbf{Factor} & \textbf{Level} & \textbf{V} & \textbf{A} & \textbf{D} & \textbf{Mean} \\
+\midrule
+\multirow{2}{*}{Encoder}
+  & Conv1D & \best{0.510} & \best{0.521} & 0.383 & 0.471 \\
+  & GRU    & 0.499 & 0.509 & \best{0.410} & \best{0.473} \\
+\midrule
+\multirow{3}{*}{Pre-train}
+  & None   & 0.499 & 0.513 & 0.391 & 0.468 \\
+  & SimCLR & 0.503 & 0.511 & \best{0.422} & \best{0.478} \\
+  & MSM    & \best{0.512} & \best{0.521} & 0.376 & 0.470 \\
+\midrule
+\multirow{3}{*}{Aug.}
+  & None    & 0.492 & \best{0.519} & \best{0.404} & 0.472 \\
+  & Default & 0.500 & 0.517 & 0.394 & 0.470 \\
+  & Time-warp & \best{0.521} & 0.509 & 0.392 & \best{0.474} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Best per-dimension configurations from the temporal factorial.}
+\label{tab:factorial}
+\centering
+\setlength{\tabcolsep}{3.5pt}
+\small
+\begin{tabular}{llccc}
+\toprule
+\textbf{Dim} & \textbf{Config} & \textbf{V} & \textbf{A} & \textbf{D} \\
+\midrule
+Valence & Conv1D + SimCLR + TW      & 0.553 & 0.544 & 0.378 \\
+Arousal & Conv1D + SimCLR + default & 0.524 & \best{0.545} & 0.394 \\
+Dominance & GRU + SimCLR + none     & 0.495 & 0.489 & \best{0.455} \\
+\midrule
+SVM + AP1 & reference               & \best{0.608} & 0.535 & 0.435 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Main effects.}
+Table~\ref{tab:factor_marginals} shows that encoder choice has little effect
+on mean F1, but the dimensional pattern is meaningful.
+Conv1D is stronger for Valence and Arousal, where short local transients and
+phasic responses matter.
+GRU is stronger for Dominance, where sustained interpersonal control and
+engagement may unfold over longer intervals.
+SimCLR is the best pre-training method overall, again driven by Dominance.
+Masked sequence modelling (MSM) is competitive for Valence and Arousal but
+lags on Dominance, suggesting that reconstructing local chunks is less useful
+for slow state-like signals than learning invariance across augmented views.
+
+\paragraph{Configuration selection.}
+The per-dimension winners in Table~\ref{tab:factorial} exceed the SVM+AP1
+reference on Arousal and Dominance, but they are selected from a factorial
+grid.
+For a final temporal-modelling submission, the selection rule should be locked
+using validation folds before reporting T3 test results.
+The present paper treats these results as evidence that self-supervised
+sequence modelling is promising, not as a completed claim that temporal neural
+models generally outperform the SVM baseline.
+
+\section{Confirmed Benchmarks and Exploratory Tracks}
+\label{sec:recipes}
+
+The benchmark use case requires recipes that other researchers can reproduce.
+Table~\ref{tab:recipes} summarises the benchmark settings we recommend for
+future GroupAffect-4 experiments.
+The first recipe is the conservative baseline: 15s summary features with no
+augmentation.
+The second is the fixed known-team AP1 augmentation baseline.
+The third is the main single-pipeline preprocessing recipe.
+The final two rows are explicitly exploratory and should not be reported as
+drop-in replacements for confirmed baselines.
+
+\begin{table}[t]
+\caption{Benchmark recipe status map. Confirmed rows are suitable for direct
+comparison in current workshop submissions; exploratory rows require
+validation-locked confirmation.}
+\label{tab:recipes}
+\centering
+\setlength{\tabcolsep}{2pt}
+\footnotesize
+\begin{tabular}{p{0.13\columnwidth}p{0.08\columnwidth}p{0.22\columnwidth}p{0.50\columnwidth}}
+\toprule
+\textbf{Status} & \textbf{Recipe} & \textbf{Use when} & \textbf{Core setting} \\
+\midrule
+Confirmed & R0 & Conservative baseline & 15s SVM, no augmentation \\
+Confirmed & R1 & Known-team augmentation baseline & 15s SVM + AP1 \\
+Confirmed & R2a & Balanced single-pipeline & EDA/PPG 45s smooth + AP1 ($V{=}0.600$, $A{=}0.624$, $D{=}0.436$) \\
+Exploratory & E1 & Per-dim upper bound & R2a for V/A + v2+smooth+AP1 for D (mean $=0.561$) \\
+Exploratory & E2 & Temporal representation & SimCLR pre-train + val-selected encoder \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+R0, R1, and R2a are stable baselines for the current benchmark.
+R2a is the main single-pipeline recommendation of this paper: it has a clear
+mechanistic rationale and improves all three VAD dimensions relative to the
+unaugmented 15s baseline.
+E1 is an exploratory per-dimension upper bound and should be reported only
+with explicit validation-locking caveats.
+E2 is a research track: the best temporal configurations are encouraging, but
+the final publication version should rerun configuration selection under a
+strict validation-only protocol.
+
+\section{Dimension-Level Mechanisms}
+\label{sec:dimension_mechanisms}
+
+The preprocessing and temporal results are not uniform across VAD dimensions.
+This is expected: Valence, Arousal, and Dominance are not three interchangeable
+classification heads.
+They have different psychological meanings, different physiological carriers,
+and different temporal scales.
+
+\paragraph{Valence.}
+Valence is the dimension least helped by long-window pooling.
+The best Valence score remains the 15s AP1 SVM baseline, and full-feature
+smoothing damages Valence sharply.
+This suggests that Valence-relevant information in the current feature set is
+local: gaze stability, pupil dynamics, facial-orienting proxies, and short
+movement changes may matter more than slow autonomic averages.
+Temporal encoders also struggle to beat the summary baseline for Valence.
+One interpretation is that the handcrafted summary vector already captures the
+useful local statistics at the current label density.
+
+\paragraph{Arousal.}
+Arousal is the clearest beneficiary of longer physiological context.
+Hard-pooled 30s windows produce the highest Arousal score, and both full
+smoothing and physio-selective smoothing improve Arousal over the default 15s
+setup.
+This is consistent with EDA phasic responses and PPG-derived HRV estimates,
+which are unstable in very short windows.
+The important caveat is that simply increasing context can harm other
+dimensions.
+The recommended recipe therefore smooths EDA and PPG but preserves faster
+gaze, pupil, and IMU statistics.
+
+\paragraph{Dominance.}
+Dominance benefits from physio-selective smoothing and GRU+SimCLR pre-training.
+This pattern suggests a slowly-varying state tied to sustained interpersonal
+control and confidence.
+However, Dominance is also the dimension most likely to need relational
+features absent from the current physiology-only set.
+Turn-taking, speaking time, gaze-to-person, posture, and role-specific task
+actions may be necessary to move beyond the current ceiling.
+
+\paragraph{Why one shared temporal model is insufficient.}
+The factorial results show that each dimension prefers a different temporal
+recipe.
+This should not be treated as inconvenient noise; it is a substantive result.
+If Valence is driven by local oculomotor and movement summaries, Arousal by
+phasic autonomic context, and Dominance by sustained interpersonal state, then
+forcing a single encoder/pre-training/augmentation recipe across all three is
+biologically and psychologically implausible.
+Future temporal models should either select configurations per dimension on
+validation data or use architectures that explicitly represent dimension-level
+timescales.
+
+\section{Reproducibility Checks}
+\label{sec:checks}
+
+Small physiological datasets are vulnerable to subtle protocol drift.
+Table~\ref{tab:checks} lists the checks we recommend when reusing these
+benchmarks.
+They are included because several apparent improvements in early devkit
+iterations were caused by mismatched thresholds, pool handling, or split
+semantics rather than genuine model improvements.
+
+\begin{table}[t]
+\caption{Reproducibility checks for preprocessing and temporal experiments.}
+\label{tab:checks}
+\centering
+\setlength{\tabcolsep}{2pt}
+\small
+\begin{tabular}{p{0.33\columnwidth}p{0.59\columnwidth}}
+\toprule
+\textbf{Check} & \textbf{Reason} \\
+\midrule
+Fit scalers on train only & Prevents validation/test distribution leakage. \\
+Fit label thresholds on train only & Keeps macro-F1 comparable across models. \\
+Mark centred smoothing offline & Avoids claiming online performance from future context. \\
+Keep T4 Dominance masked & T4 Dominance is not an administered label. \\
+Separate pool pre-training from pseudo-labelling & Prevents noisy labels from overwhelming $N=103$. \\
+Select temporal configs on validation & Avoids grid-searching directly on T3. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Recommended reporting.}
+Future papers should report the exact window recipe, whether smoothing is
+causal or centred, whether AP1/AP2 augmentation is used, and whether unlabelled
+windows are used for supervised pseudo-label training or self-supervised
+pre-training.
+They should also report per-dimension VAD scores, because a single mean can
+hide the main scientific trade-off: Arousal often benefits from longer
+physiological context, while Valence is more sensitive to preserving fast
+signals.
+
+\begin{table}[t]
+\caption{Claim-status map for preprocessing and temporal modelling.}
+\label{tab:claim_status}
+\centering
+\setlength{\tabcolsep}{3pt}
+\small
+\begin{tabular}{p{0.31\columnwidth}p{0.57\columnwidth}}
+\toprule
+\textbf{Claim} & \textbf{Current status} \\
+\midrule
+Physio-selective smoothing helps & Mature; improves all VAD dimensions over 15s no-aug. \\
+30s pooling maximises Arousal & Supported, but trades off Valence and sample count. \\
+IMU is largest arousal contributor & Supported by drop-one ablation, not a standalone sensor ranking. \\
+Temporal pre-training can beat SVM per dimension & Promising; requires validation-locked confirmation. \\
+One temporal config solves all VAD & Not supported; dimensions prefer different recipes. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Uncertainty and Evaluation Scope}
+\label{sec:uncertainty_scope}
+
+The claims are intentionally split by evidential strength.
+R0, R1, and R2a are confirmatory under the fixed known-team split;
+E1 and E2 remain exploratory and require validation-locked confirmation.
+Centred smoothing is an offline recipe and should not be interpreted as a
+real-time method; the same hypothesis should be retested with causal smoothing
+for online deployment.
+
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{Preprocessing is a model choice.}
+At $N=103$, feature smoothing and window definition change the benchmark as
+much as model family.
+Physio-selective smoothing is the recommended default because it matches
+signal timescales: EDA/PPG are slow enough to benefit from 45s context, while
+gaze, pupil, and IMU should preserve faster dynamics.
+This is a useful lesson beyond GroupAffect-4.
+In multimodal physiology, the temptation is to choose one temporal window for
+all signals so the pipeline is simple.
+Our results suggest that this simplicity can be costly: the window that makes
+EDA more reliable may erase movement and oculomotor evidence.
+Modality-aware preprocessing is therefore a low-complexity alternative to
+larger models.
+
+\paragraph{Temporal models need label-free sequence learning.}
+Raw-sequence encoders are underpowered when trained only on labelled windows.
+The unlabelled pool is therefore most useful for representation learning, not
+for overwhelming the supervised objective with pseudo-labels.
+This finding also reframes the role of unlabelled data.
+Rather than forcing all pool windows into a supervised objective, temporal
+pre-training lets the pool teach invariances while the labelled windows retain
+control over class boundaries.
+That separation is especially important for affective self-report, where
+pseudo-labels are uncertain and person-specific.
+
+\paragraph{Dimension-specific tuning is promising but risky.}
+The best temporal configurations beat SVM+AP1 on Arousal and Dominance, but
+the configurations are selected from a grid.
+For a submission-ready temporal paper, all configuration choices should be
+made on validation folds before final T3 testing.
+The result is still scientifically useful because it identifies where temporal
+models are most likely to pay off.
+Arousal benefits from phasic physiological context; Dominance benefits from
+slow recurrent structure and contrastive pre-training.
+Valence remains hardest for temporal encoders, perhaps because the summary
+features already capture the relevant gaze and pupil statistics at this scale.
+
+\paragraph{Known-team scope.}
+The canonical split is a temporal split within known teams, not a new-group
+deployment test.
+Strict group-isolated evaluation (LOGO-CV) should be treated as a separate
+stress test before making deployment claims.
+
+\section{Limitations and Next Steps}
+\label{sec:limitations}
+
+The current temporal results mix mature preprocessing findings with
+exploratory sequence-modelling results.
+The SimCLR/MSM factorial should be rerun with strict split isolation,
+validation-only model selection, and clustered confidence intervals.
+The preprocessing claims are more mature and can stand as a focused workshop
+contribution.
+Several additional limitations remain.
+First, the dataset has only 10 sessions, so confidence intervals should be
+clustered by group rather than by window in future work.
+Second, the current temporal encoders use relatively lightweight architectures;
+larger transformers may require more unlabelled data or stronger regularisation.
+Third, centred smoothing is offline and should be converted to a causal filter
+for real-time group support systems.
+Finally, modality ablations are drop-one tests, so they measure marginal
+contribution under the current feature set rather than standalone modality
+performance.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+For GroupAffect-4, the strongest practical lesson is that physiological
+preprocessing must respect modality timescales.
+Smoothing EDA and PPG while preserving faster gaze, pupil, and IMU features
+improves all VAD dimensions and provides a strong default benchmark.
+Including speech in the current small-sample setting does not improve the
+headline benchmark and is therefore best treated as an optional analysis track.
+Temporal self-supervision is a promising next track, especially for Arousal and
+Dominance, but it should be treated as a separate sequence-modelling problem
+with stricter validation.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{icmi2026_refs}
+
+\end{document}

@@ -1,0 +1,38 @@
+# Default lab config (edit as needed)
+
+capture_workstation:
+  model: "Lenovo Legion T7"
+  notes: "Primary capture PC (prefer wired ethernet to switch; UPS-backed)."
+
+network:
+  switch: "UniFi USW-Pro-48-PoE (600W)"
+  ap: "UniFi U6 Pro"
+  notes: "Prefer wired for high-bandwidth streams; keep Wi‑Fi for tablets/control only."
+
+storage:
+  nas: "UGREEN NASync DXP4800 Plus"
+  disk: "Toshiba N300 20TB"
+  notes: "Do not store identifiable data in repo; export to controlled vault."
+
+devices:
+  - name: "gtec"
+    type: "vendor"
+    outputs: ["eeg/"]
+  - name: "tobii_glasses_3"
+    type: "vendor"
+    outputs: ["et/", "video/"]
+  - name: "vicon"
+    type: "vendor"
+    outputs: ["mocap/"]
+  - name: "emotibit"
+    type: "open"
+    outputs: ["physio/"]
+  - name: "see3cam"
+    type: "usb_camera"
+    outputs: ["video/"]
+  - name: "illuminance_sensor"
+    type: "usb"
+    outputs: ["beh/"]
+  - name: "photodiode_powermeter"
+    type: "usb"
+    outputs: ["beh/"]

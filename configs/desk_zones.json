@@ -1,0 +1,40 @@
+{
+  "default": [
+    {
+      "person_id": 0,
+      "rect": [100, 200, 600, 800],
+      "glasses_ids": [10, 11]
+    },
+    {
+      "person_id": 1,
+      "rect": [800, 200, 600, 800],
+      "glasses_ids": [12, 13]
+    },
+    {
+      "person_id": 2,
+      "rect": [1500, 200, 600, 800],
+      "glasses_ids": [14, 15]
+    },
+    {
+      "person_id": 3,
+      "rect": [2200, 200, 600, 800],
+      "glasses_ids": [16, 17]
+    }
+  ],
+  "cameras": {
+    "cam1": [
+      {
+        "person_id": 0,
+        "rect": [120, 180, 580, 780],
+        "glasses_ids": [10, 11]
+      }
+    ],
+    "cam2": [
+      {
+        "person_id": 1,
+        "rect": [850, 220, 620, 820],
+        "glasses_ids": [12, 13]
+      }
+    ]
+  }
+}

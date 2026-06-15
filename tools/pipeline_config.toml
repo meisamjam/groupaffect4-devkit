@@ -1,0 +1,47 @@
+[pipeline]
+# Master BIDS Processing Pipeline Configuration
+
+[data]
+# Root directory containing high_level_*_inventory files
+data_root = affectai-data-processing-seed/data
+input_root = affectai-data-processing-seed/data
+
+[output]
+# Output directory for processed BIDS data
+output_dir = E:\processed_data
+
+[processing]
+# Number of parallel worker processes
+max_workers = 4
+
+# GPU device IDs (comma-separated: 0,1 for dual GPU)
+gpu_devices = 0
+
+# Enable optional processing pipelines
+enable_3d_pose = True
+enable_face_hand = True
+enable_physio = False
+
+[resources]
+# Maximum memory per worker (GB)
+max_memory_per_worker = 8
+
+# GPU memory fraction per worker (0.0-1.0)
+gpu_memory_fraction = 0.8
+
+[logging]
+# Log level: DEBUG, INFO, WARNING, ERROR
+log_level = INFO
+
+# Log file path (optional)
+log_file = logs/pipeline.log
+
+[validation]
+# Validate BIDS output after processing
+validate_bids = True
+
+# Remove incomplete sessions on failure
+cleanup_on_failure = False
+
+# Resume from last checkpoint
+resume_checkpoint = False

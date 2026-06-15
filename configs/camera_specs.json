@@ -1,0 +1,52 @@
+{
+    "_comment": "Known camera specs for seeding anipose calibration. See docs/decisions.md.",
+    "_formula": "expected_fx_1080p = (width / 2) / tan(hfov_deg * pi / 360)",
+    "_note_1080p_mode": "Jabra PanaCast 20 records 1080p via CENTER CROP of the 4K sensor, not 2x downscale. At 4K the full 120-deg HFOV gives fx=1108px; at 1080p center-crop the effective HFOV ~82-deg gives fx~1108px (not 554px). Multiple calibrations show cam1-4 cluster at 865-1120px, cam5 higher (1270px) when Intelligent Zoom is active. expected_fx_1080p updated to 950 (empirical median with zoom off). Lock AI zoom before calibration runs.",
+    "models": {
+        "jabra_panacast_20": {
+            "description": "Jabra PanaCast 20 — 4K intelligent webcam, 120-deg HFOV; records 1080p via center-crop of 4K sensor (not 2x downscale)",
+            "hfov_deg": 120,
+            "hfov_deg_at_1080p_crop": 82,
+            "sensor_resolution": [3840, 2160],
+            "capture_resolution": [1920, 1080],
+            "expected_fx_1080p": 950.0,
+            "expected_fy_1080p": 950.0,
+            "expected_fx_1080p_nominal_range": [700.0, 1400.0],
+            "distortion_model": "barrel_or_pincushion_depending_on_zoom_state",
+            "expected_k1_range": [-0.20, 2.00],
+            "notes": "At 1080p center-crop, effective HFOV ~82-deg, fx~1108px. With Intelligent Zoom (AI framing) active, fx can reach 1400+ and k1 goes positive (pincushion). Lock AI zoom off before calibration for consistent intrinsics. Empirically observed range: 865-1280px across multiple sessions."
+        },
+        "jabra_panacast_50": {
+            "description": "Jabra PanaCast 50 — panoramic video bar, 133-deg HFOV (stitched); unreliable for ChArUco calibration",
+            "hfov_deg": 133,
+            "sensor_resolution": [3840, 1080],
+            "capture_resolution": [1920, 1080],
+            "expected_fx_1080p": 418.2,
+            "expected_fy_1080p": 418.2,
+            "expected_fx_1080p_nominal_range": [80.0, 600.0],
+            "distortion_model": "panoramic_stitched",
+            "expected_k1_range": [-5.00, 5.00],
+            "notes": "Panoramic stitched output with highly non-standard distortion. ChArUco detection fails in most frames due to heavy distortion. Use P50 for overview/gaze only; do not rely on it for triangulation accuracy."
+        }
+    },
+    "camera_name_patterns": {
+        "_comment": "Map video file stems (anipose camera names) to model keys. Regex patterns, matched case-insensitively.",
+        "jabra_panacast_20_cam[0-9]+(_vid(_video)?)?": "jabra_panacast_20",
+        "jabra_panacast_50(_cam[0-9]+)?(_vid(_video)?)?": "jabra_panacast_50",
+        "cam[0-9]+_p20": "jabra_panacast_20",
+        "cam[0-9]+_p50": "jabra_panacast_50"    },
+    "camera_overrides": {
+        "_comment": "Per-camera setting overrides keyed by substring of the camera name (case-insensitive). Fields listed here replace the model-level value for that specific camera only. Use this when a camera has non-default firmware settings (e.g., Intelligent Zoom active, manual focus locked).",
+        "cam5": {
+            "_note": "cam5 observed with Intelligent Zoom / AI framing active during March 2026 calibration: fx=1273px, k1=+1.84 (pincushion — indicates digital zoom crop). May also have manual focus locked to a different distance than cam1-4. Tolerances widened accordingly.",
+            "expected_fx_1080p": 1273.0,
+            "expected_fx_1080p_nominal_range": [700.0, 1700.0],
+            "expected_k1_range": [-0.30, 3.00]
+        },
+        "cam6": {
+            "_note": "cam6 appears to record at full 120-deg HFOV (no center-crop / no digital zoom), giving fx~554-600px matching the full-sensor formula (960/tan(60deg)=554). cam1-5 use center-crop mode (fx 865-1280). May have manual zoom locked to widest setting. Intrinsics transplanted from prior session (0 board frames in March 2026 run). Revisit after dedicated calibration pass.",
+            "expected_fx_1080p": 554.0,
+            "expected_fx_1080p_nominal_range": [400.0, 900.0],
+            "expected_k1_range": [-0.50, 1.00]
+        }    }
+}

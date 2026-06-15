@@ -1,0 +1,166 @@
+world:
+  coordinate_frame:
+    origin: fixed_7x5_board_center
+    axes:
+      x: right
+      y: back
+      z: up
+  aruco_dictionary: DICT_4X4_50
+  marker_map:
+    # 50mm desk-edge markers, world origin at fixed-board center.
+    # Corner order: top-left, top-right, bottom-right, bottom-left.
+    - id: 0
+      label: front_left_corner
+      corners_m:
+        - [-0.9250, -0.3750, 0.0000]
+        - [-0.8750, -0.3750, 0.0000]
+        - [-0.8750, -0.4250, 0.0000]
+        - [-0.9250, -0.4250, 0.0000]
+    - id: 1
+      label: front_right_corner
+      corners_m:
+        - [0.8750, -0.3750, 0.0000]
+        - [0.9250, -0.3750, 0.0000]
+        - [0.9250, -0.4250, 0.0000]
+        - [0.8750, -0.4250, 0.0000]
+    - id: 2
+      label: back_right_corner
+      corners_m:
+        - [0.8750, 0.4250, 0.0000]
+        - [0.9250, 0.4250, 0.0000]
+        - [0.9250, 0.3750, 0.0000]
+        - [0.8750, 0.3750, 0.0000]
+    - id: 3
+      label: back_left_corner
+      corners_m:
+        - [-0.9250, 0.4250, 0.0000]
+        - [-0.8750, 0.4250, 0.0000]
+        - [-0.8750, 0.3750, 0.0000]
+        - [-0.9250, 0.3750, 0.0000]
+    - id: 4
+      label: left_center
+      corners_m:
+        - [-0.9250, 0.0250, 0.0000]
+        - [-0.8750, 0.0250, 0.0000]
+        - [-0.8750, -0.0250, 0.0000]
+        - [-0.9250, -0.0250, 0.0000]
+    - id: 5
+      label: right_center
+      corners_m:
+        - [0.8750, 0.0250, 0.0000]
+        - [0.9250, 0.0250, 0.0000]
+        - [0.9250, -0.0250, 0.0000]
+        - [0.8750, -0.0250, 0.0000]
+
+video_fps: 30.0
+min_cameras_for_triangulation: 2
+max_reproj_error_px: 10.0
+
+desk:
+  width_m: 1.8000
+  depth_m: 0.8000
+  height_m: 0.7500
+
+table_marker_layout:
+  marker_size_m: 0.0500
+  placement: edge_centers
+  marker_ids:
+    front_left: 0
+    front_right: 1
+    back_right: 2
+    back_left: 3
+    left_center: 4
+    right_center: 5
+
+fixed_charuco_board:
+  board_type: 7x5
+  square_size_m: 0.069
+  dictionary: DICT_4X4_250
+  center_position_m: [0.0000, 0.0000, 0.0000]
+  orientation: flat
+  is_world_origin: true
+
+glasses:
+  - id: tobii_p1
+    left_marker_id: 10
+    right_marker_id: 11
+    marker_size_m: 0.025
+    marker_center_distance_mm: 140.0
+    camera_from_front_edge_line_mm: 60.0
+    left_marker_offset_mm: [72.5, 0.0, 0.0]
+    right_marker_offset_mm: [-72.5, 0.0, 0.0]
+    gaze_ndjson: null
+    time_offset_s: 0.0
+  - id: tobii_p2
+    left_marker_id: 12
+    right_marker_id: 13
+    marker_size_m: 0.025
+    marker_center_distance_mm: 140.0
+    camera_from_front_edge_line_mm: 60.0
+    left_marker_offset_mm: [72.5, 0.0, 0.0]
+    right_marker_offset_mm: [-72.5, 0.0, 0.0]
+    gaze_ndjson: null
+    time_offset_s: 0.0
+  - id: tobii_p3
+    left_marker_id: 14
+    right_marker_id: 15
+    marker_size_m: 0.025
+    marker_center_distance_mm: 140.0
+    camera_from_front_edge_line_mm: 60.0
+    left_marker_offset_mm: [72.5, 0.0, 0.0]
+    right_marker_offset_mm: [-72.5, 0.0, 0.0]
+    gaze_ndjson: null
+    time_offset_s: 0.0
+  - id: tobii_p4
+    left_marker_id: 16
+    right_marker_id: 17
+    marker_size_m: 0.025
+    marker_center_distance_mm: 140.0
+    camera_from_front_edge_line_mm: 60.0
+    left_marker_offset_mm: [72.5, 0.0, 0.0]
+    right_marker_offset_mm: [-72.5, 0.0, 0.0]
+    gaze_ndjson: null
+    time_offset_s: 0.0
+
+cameras:
+  - id: cam1
+    model: panacast_20
+    label: left_front_middle
+    position_m: [-0.9000, -0.2000, 0.8800]
+    focus: [P1, P2]
+  - id: cam2
+    model: panacast_20
+    label: right_front_middle
+    position_m: [0.9000, -0.2000, 0.8800]
+    focus: [P3, P4]
+  - id: cam3
+    model: panacast_20
+    label: right_back_middle
+    position_m: [0.9000, 0.2000, 0.8800]
+    focus: [P3, P4]
+  - id: cam4
+    model: panacast_20
+    label: left_back_middle
+    position_m: [-0.9000, 0.2000, 0.8800]
+    focus: [P1, P2]
+  - id: cam5
+    model: panacast_20
+    label: front_left_low
+    position_m: [-0.9000, -0.4000, 0.0000]
+    focus: [table_overview]
+  - id: cam6
+    model: panacast_20
+    label: back_center
+    position_m: [0.0000, 0.4000, 0.8800]
+    focus: [all]
+  - id: cam7
+    model: panacast_50
+    label: front_center_p50
+    position_m: [0.0000, -0.4000, 0.9000]
+    focus: [all]
+
+participants:
+  P1: back_right
+  P2: front_right
+  P3: front_left
+  P4: back_left

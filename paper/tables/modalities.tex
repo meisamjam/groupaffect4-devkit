@@ -1,0 +1,63 @@
+%% Table: modalities.tex
+%% \input{tables/modalities} from main.tex
+%%
+%% This version reflects the modalities released in this paper. Multi-camera
+%% video streams are deferred to follow-up work and are not analysed here.
+
+\begin{table}[t]
+  \centering
+  \caption{Modalities released in this version of AffectAI.
+    All per-participant streams use seat identifiers P1--P4.
+    Sampling rates marked with $\dagger$ are channel-dependent;
+    see the per-channel table in the appendix.
+    Multi-camera video streams were recorded for follow-up work; they are not part of the current release or analysis.}
+  \label{tab:modalities}
+  \small
+  \begin{tabular}{llllr}
+    \toprule
+    \textbf{Modality} & \textbf{Device} & \textbf{Signals} & \textbf{Rate} & \textbf{Per session} \\
+    \midrule
+    Physiology
+      & EmotiBit
+      & PPG (3 wavelengths), EDA, temperature, IMU
+      & $\dagger$
+      & 4 (one per P) \\
+    \addlinespace
+    Eye tracking (2D)
+      & Tobii Pro Glasses 3
+      & 2D gaze, pupil diameter, validity
+      & 50~Hz
+      & 4 (one per P) \\
+    \addlinespace
+    Audio (close-talk)
+      & DPA 4060
+      & Mono, 48~kHz / 24-bit
+      & 48~kHz
+      & 4 (one per P) \\
+    \addlinespace
+    Audio (room)
+      & DPA 4060
+      & Mono, 48~kHz / 24-bit
+      & 48~kHz
+      & 1 \\
+    \addlinespace
+    Behavioural self-report
+      & Android tablets
+      & VAD probes, task responses
+      & event-driven
+      & 4 (one per P) \\
+    \addlinespace
+    Personality (pre-session)
+      & Online questionnaire
+      & BFI-44 item responses, demographics
+      & one-shot
+      & 4 (one per P) \\
+    \addlinespace
+    Conversation transcripts
+      & WhisperX (per-channel)
+      & Word-level diarised transcripts
+      & event-driven
+      & 1 (merged) \\
+    \bottomrule
+  \end{tabular}
+\end{table}

@@ -1,0 +1,36 @@
+# AffectAI Capture - All Required Packages
+# Python >=3.10 required
+# System dependency (install separately, not via pip): ffmpeg CLI available on PATH
+
+# Core dependencies
+pydantic>=2.7
+pyyaml>=6.0
+pandas>=2.1
+
+# Optional: LSL (Lab Streaming Layer) support
+pylsl>=1.16
+
+# Optional: mDNS / Zeroconf — lets tablets use affectai-display.local (stable across DHCP changes)
+zeroconf>=0.131
+
+# Optional: .NET SDK interop (Vicon/Tobii)
+pythonnet>=3.0
+
+# Optional: Video processing
+opencv-python>=4.8
+
+# Optional: Audio processing
+sounddevice>=0.4.6
+soundfile>=0.12
+
+# Optional: Annotation GUI (tools/annotation_gui)
+PySide6>=6.6
+pyqtgraph>=0.13
+av>=11.0
+
+# Optional: FreeMoCap (post-hoc markerless motion capture)
+freemocap>=1.3.0
+
+# Optional: Development tools
+pytest>=8.0
+ruff>=0.5

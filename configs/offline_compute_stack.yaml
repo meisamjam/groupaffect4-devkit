@@ -1,0 +1,136 @@
+# Offline two-workstation processing stack — AffectAI post-collection.
+# See docs/offline_compute_stack.md for the full workflow guide.
+#
+# Privacy: never put real participant names here.
+# Use P1–P4 or ses-* IDs only in notes and queue entries.
+#
+# Usage with the CLI helper:
+#   python tools/offline_compute_stack.py --stack-config configs/offline_compute_stack.yaml \
+#       --role storage_worker init
+#   python tools/offline_compute_stack.py --stack-config configs/offline_compute_stack.yaml \
+#       --role gpu_main plan --session-id 20260311_grp-06_run01
+
+# ── Node definitions ───────────────────────────────────────────────────────
+nodes:
+
+  storage_worker:
+    hostname: "Phoenix"
+    hardware: "Phoenix AMD, Ryzen 7 7800X3D, RTX A2000 12 GB, 64 GB RAM, 4TB+4TB SSD"
+    dedicated_nic_ip: "10.10.10.2"      # Set this with New-NetIPAddress on Phoenix
+    roles:
+      - bids
+      - bids_batch
+      - qc_sync
+      - qc_gaze
+      - archive
+    paths:
+      staging_root:   "D:/affectai_stage"
+      data_root:      "D:/affectai_stage/data"
+      config_dir:     "D:/affectai_stage/configs"
+      processed_root: "D:/affectai_stage/processed"
+      archive_usb:    "H:/affectai_archive"        # 14 TB USB — attach only to this node
+      queue_tsv:      "D:/affectai_stage/work_queue.tsv"
+      repo_root:      "C:/Codes/affectai-processing/affectai-data-processing"
+
+  gpu_main:
+    hostname: "Lenovo"
+    hardware: "Lenovo Legion T7, RTX 5080, Core Ultra 9, 64 GB RAM, 2 TB SSD"
+    dedicated_nic_ip: "10.10.10.1"      # Set this with New-NetIPAddress on gpu-main
+    roles:
+      - pose_json
+      - pose3d_dryrun
+      - pose3d
+    paths:
+      work_root:    "D:/affectai_work"
+      share_mount:  "Z:"                # Mapped drive: \\10.10.10.2\affectai_stage
+      queue_tsv:    "Z:/work_queue.tsv" # Shared queue via SMB mount
+      repo_root:    "C:/Codes/affectai-processing/affectai-data-processing"
+
+# ── Network ────────────────────────────────────────────────────────────────
+network:
+  dedicated_subnet:  "10.10.10.0/24"
+  smb_share_name:    "affectai_stage"
+  smb_host_ip:       "10.10.10.2"    # Always hosted on storage_worker (Phoenix)
+  smb_mount_drive:   "Z"             # Drive letter mapped on gpu_main
+
+  # PowerShell setup commands (run once, as Administrator):
+  #
+  # On Phoenix (storage_worker):
+  #   New-NetIPAddress -InterfaceAlias "Ethernet" -IPAddress 10.10.10.2 -PrefixLength 24
+  #   Set-DnsClientServerAddress -InterfaceAlias "Ethernet" -ResetServerAddresses
+  #   New-Item -ItemType Directory -Force D:\affectai_stage
+  #   New-SmbShare -Name affectai_stage -Path D:\affectai_stage -ChangeAccess "$env:USERNAME"
+  #
+  # On gpu_main (Lenovo):
+  #   New-NetIPAddress -InterfaceAlias "Ethernet" -IPAddress 10.10.10.1 -PrefixLength 24
+  #   Set-DnsClientServerAddress -InterfaceAlias "Ethernet" -ResetServerAddresses
+  #   New-PSDrive -Name Z -PSProvider FileSystem -Root \\10.10.10.2\affectai_stage -Persist
+  #
+  # Verify from gpu_main:
+  #   ping 10.10.10.2
+  notes: >
+    Keep lab Wi-Fi on a separate NIC for internet and lab access.
+    Do not set a default gateway on the dedicated-cable NIC.
+    Attach the 14 TB USB archive only to storage_worker.
+
+# ── Processing stage assignments ───────────────────────────────────────────
+# Which node is responsible for each processing stage.
+stage_assignments:
+  bids:          storage_worker
+  bids_batch:    storage_worker
+  pose_json:     gpu_main
+  pose3d_dryrun: gpu_main
+  pose3d:        gpu_main
+  qc_sync:       storage_worker
+  qc_gaze:       storage_worker
+  archive:       storage_worker
+
+# ── Queue status lifecycle ─────────────────────────────────────────────────
+# Valid values for the 'status' column in work_queue.tsv.
+queue_statuses:
+  - staged       # Raw data copied from USB archive to storage_worker SSD
+  - bids         # BIDS packaging in progress on storage_worker
+  - pose-json    # MediaPipe 2D pose JSON extraction in progress on gpu_main
+  - pose-3d      # video_only_3d_pipeline.py running on gpu_main
+  - qc           # QC reports running on storage_worker
+  - archived     # Final outputs synced back and copied to USB archive
+
+# ── Data transfer commands ─────────────────────────────────────────────────
+# Reference robocopy patterns used in the workflow.
+#
+# Stage raw data from USB to storage_worker:
+#   robocopy H:\affectai_archive\data D:\affectai_stage\data /E /MT:16 /R:2 /W:5
+#
+# Copy one session from share to gpu_main local scratch:
+#   robocopy Z:\processed\bids\sub-01\ses-<id> D:\affectai_work\ses-<id> /E /MT:16 /R:2 /W:5
+#
+# Sync final 3D outputs back to storage_worker:
+#   robocopy D:\affectai_work\ses-<id>\video_only_3d Z:\processed\mocap\ses-<id> /E /MT:16 /R:2 /W:5
+#
+# Archive finished session from storage_worker to USB:
+#   robocopy D:\affectai_stage\processed\bids\sub-01\ses-<id> H:\affectai_archive\processed\ses-<id> /E /MT:8 /R:2 /W:5
+
+# ── 3D pipeline parameters ─────────────────────────────────────────────────
+pose3d:
+  camera_zones:
+    - "cam1+cam4:0,1"
+    - "cam2+cam3:2,3"
+  flip_cameras:
+    - "cam_0"
+    - "cam_1"
+    - "cam_2"
+    - "cam_3"
+  refine_skeleton: true
+  mediapipe_model_complexity: 2
+
+# ── BIDS packaging parameters ──────────────────────────────────────────────
+bids:
+  split_media: true
+  max_workers: 2     # Conservative default; raise only if disk I/O is not saturated
+
+# ── Safety rules ───────────────────────────────────────────────────────────
+safety:
+  one_session_one_machine: true    # Never let two nodes write the same session output dir
+  no_direct_usb_compute:   true    # Always copy to internal SSD before GPU processing
+  dry_run_before_pose3d:   true    # Always run --dry-run before a full 3D pipeline run
+  participant_ids_only:    true    # P1–P4 only; no real names in logs, paths, or queue

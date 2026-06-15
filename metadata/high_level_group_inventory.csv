@@ -1,0 +1,19 @@
+group_id,session_count,sessions,phase_tags,recording_splits,av_splits,participants_ids,participants_names,processed_modalities,raw_modalities,stimuli_candidate_count,tobii_candidate_count,currentstudy_group_folder_count,currentstudy_group_xdf_count,central_mic_available,central_mic_file_count
+grp-01,1,ses-20260318_grp-01_run01,final,final,,sub-01;sub-02;sub-03;sub-04,Annaya Thammalokapitak;Helge Coroli Frandsen;Kate Powell;Mo Abbasi,,lsl;tobii_lsl,1,15,0,0,True,16
+grp-03,2,ses-20260309_grp-03_run01;ses-20260309_grp-03_run02,pilot,pilot,,sub-01;sub-02;sub-03;sub-04,Anastasia Ioana Cojocariu;Nino Burini;Stine Holm;Susanne Rosenberg,,tobii_lsl,2,8,0,0,True,16
+grp-04,1,ses-20260309_grp-04_run01,pilot,pilot,pilot,sub-01;sub-02;sub-03;sub-04,Jakob Bramaholm Hager;Jarle Schnoor Ostvedt;Marcin Jankowski;Windy Nielsen,,av;tobii_lsl,3,4,0,0,True,16
+grp-05,1,ses-20260312_grp-05_run01,test,test,,sub-01;sub-02;sub-03;sub-04,Christian Buch Rønborg;Emil Oliver Søndergård Ramovic;Kate Elizabeth Andersen;Louisa Guldberg,,lsl;tobii_lsl,1,4,1,1,True,16
+grp-06,2,ses-20260311_grp-06_run01;ses-20260311_grp-06_run02,final;test,final;test,,sub-01;sub-02;sub-03;sub-04,Katy Andersen-Young;Oleksandra Boholii;Oliver Walbom;Rasmus G. Crillesen,,lsl;tobii_lsl,3,6,0,0,True,16
+grp-07,1,ses-20260312_grp-07_run01,final,final,final,sub-01;sub-02;sub-03;sub-04,Daniela Stancu;Jana Rösner Gjoni;Olena Mubako;harshavardhan reddy,,av;lsl;tobii_lsl,2,4,1,2,True,16
+grp-08,2,ses-20260313_grp-08_run01;ses-20260316_grp-08_run01,final;test,final;test,final,sub-01;sub-02;sub-03;sub-04,Camilla Dunk Ring;Laura Montero Martin;Mathias Møller Bruhn;Muhammad Umair Mukati,,av;lsl;tobii_lsl,2,3,0,0,True,16
+grp-09,1,ses-20260317_grp-09_run01,final,final,final,sub-01;sub-02;sub-03;sub-04,Diana Taune;Ervin Bahtijar;RJ Martz;Tonio Michel Ermakoff,,av;lsl;tobii_lsl,3,10,1,1,True,16
+grp-10,1,ses-20260317_grp-10_run01,final,final,final,sub-01;sub-02;sub-03;sub-04,Grace Ceesay-Hanses;Lukas Frimer Tholander;Niccolò Saraga;Rucha Jevalikar,,av;lsl;tobii_lsl,1,10,1,1,True,16
+grp-11,1,ses-20260318_grp-11_run01,final,final,final,sub-01;sub-02;sub-03;sub-04,Kate Elizabeth Andersen;Prescilla Pal;Rasmus Kongsgaard Olsson;Tina Gjørup Hansen,,av;lsl;tobii_lsl,1,15,1,2,True,16
+grp-12,1,ses-20260318_grp-12_run01,final,final,final,sub-01;sub-02;sub-03;sub-04,Dags Olsteins;Luyao Wang;Pernille Zeuner;Tobias Piechowiak,,av;lsl;tobii_lsl,1,15,1,1,True,16
+grp-13,1,ses-20260318_grp-13_run01,final,final,final,sub-01;sub-02;sub-03;sub-04,Giorgio Alvazzi;Joe Jensen;Mathias Povelsen;Pernille Schiolten,,av;lsl;tobii_lsl,1,15,1,1,True,16
+grp-14,1,ses-20260319_grp-14_run01,final,final,final,sub-01;sub-02;sub-03;sub-04,Brice Modeste;Javier Alejandro Volpe;Nikita Ratchinsky;Tatiana Crucerescu,,av;lsl;tobii_lsl,1,13,1,1,True,16
+grp-15,1,ses-20260319_grp-15_run01,final,final,final,sub-01;sub-02;sub-03;sub-04,Caroline Sigsgaard;Diego Caviedes Nozal;Oliver Olesen;Stine Holm,,av;lsl;tobii_lsl,1,13,1,1,True,16
+grp-16,1,ses-20260320_grp-16_run01,final,final,final,sub-01;sub-02;sub-03;sub-04,Fan Zhang;Linda Macelovag;Patricia Pedersen;Priyamvada Ranjan,,av;lsl;tobii_lsl,0,4,0,0,True,16
+grp-A,7,ses-20260310_grp-A_run01;ses-20260311_grp-A_run01;ses-20260311_grp-A_run02;ses-20260312_grp-A_run01;ses-20260312_grp-A_run02;ses-20260316_grp-A_run01;ses-20260317_grp-A_run01,pilot;test,test,pilot,sub-01;sub-02;sub-03;sub-04,,,av;lsl;tobii_lsl,7,24,0,0,True,16
+grp-B,1,ses-20260312_grp-B_run01,test,test,,sub-01;sub-02;sub-03;sub-04,,,lsl;tobii_lsl,1,4,0,0,True,16
+grp-C,1,ses-20260317_grp-C_run01,test,test,,sub-01;sub-02;sub-03;sub-04,,,tobii_lsl,1,10,0,0,True,16

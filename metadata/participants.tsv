@@ -1,0 +1,59 @@
+participant_id	session_name	age	sex	handedness	english_proficiency	education	bfi44_e	bfi44_a	bfi44_c	bfi44_n	bfi44_o
+sub-001	Anastasia Ioana Cojocariu	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a
+sub-002	Susanne Rosenberg	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a
+sub-003	Nino Burini	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a
+sub-004	Stine Holm	26	female	right	Fluent	bachelor	1.875	4.444	3.444	3.125	3.6
+sub-005	Jakob Bramaholm Hager	46	male	right	Fluent	master	2.875	4.556	4.0	1.25	4.3
+sub-006	Marcin Jankowski	52	male	right	Fluent	master	2.875	3.444	3.222	3.0	4.0
+sub-007	Windy Nielsen	48	female	right	Fluent	master	4.25	4.222	3.556	1.75	4.1
+sub-008	Jarle Schnoor Ostvedt	35	male	right	Fluent	master	2.625	3.778	3.889	2.625	3.6
+sub-009	Oleksandra Boholii	29	female	left	Fluent	master	4.25	4.889	4.0	2.375	3.9
+sub-010	Katy Andersen-Young	45	female	right	Native speaker	bachelor	4.75	4.222	4.222	2.625	3.6
+sub-011	Rasmus G. Crillesen	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a
+sub-012	Oliver Walbom	33	male	right	Fluent	bachelor	3.375	3.667	3.667	2.25	3.7
+sub-013	Christian Buch Rønborg	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a
+sub-014	Kate Elizabeth Andersen	39	female	right	Native speaker	master	3.625	4.556	4.889	1.375	3.8
+sub-015	Louisa Guldberg	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a
+sub-016	Emil Oliver Søndergård Ramovic	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a	n/a
+sub-017	harshavardhan reddy	34	male	ambidextrous	Fluent	master	3.125	3.667	3.556	2.0	3.6
+sub-018	Jana Rösner Gjoni	36	female	right	Fluent	master	3.75	4.111	3.889	2.25	2.8
+sub-019	Olena Mubako	39	female	right	Fluent	master	3.125	3.556	3.889	3.0	3.6
+sub-020	Daniela Stancu	50	female	right	Fluent	professional_certificate	2.875	4.111	4.333	3.125	3.4
+sub-021	Laura Montero Martin	30	female	right	Fluent	master	3.875	4.111	4.0	2.0	2.4
+sub-022	Muhammad Umair Mukati	34	male	right	Fluent	phd	3.25	3.889	3.111	2.875	3.3
+sub-023	Mathias Møller Bruhn	35	male	right	Fluent	master	2.625	4.556	2.667	3.0	4.1
+sub-024	Camilla Dunk Ring	36	female	right	Fluent	master	4.375	3.667	3.111	2.25	3.8
+sub-025	Diana Taune	32	female	right	Fluent	master	3.125	4.444	3.444	3.0	4.4
+sub-026	Ervin Bahtijar	27	male	right	Fluent	master	2.75	4.444	4.444	2.5	3.8
+sub-027	RJ Martz	26	male	right	Native speaker	bachelor	3.875	4.111	3.889	2.25	4.0
+sub-028	Tonio Michel Ermakoff	24	male	right	Native speaker	master	3.875	3.556	3.778	1.75	3.6
+sub-029	Grace Ceesay-Hanses	44	female	right	Native speaker	master	3.25	4.222	4.222	1.75	3.3
+sub-030	Rucha Jevalikar	24	female	right	Fluent	master	2.875	4.444	3.778	2.75	3.5
+sub-031	Lukas Frimer Tholander	27	male	right	Fluent	master	3.75	4.444	4.222	4.0	4.1
+sub-032	Niccolò Saraga	25	male	right	Intermediate	bachelor	3.25	3.778	3.0	2.375	3.3
+sub-033	Annaya Thammalokapitak	29	female	right	Fluent	master	2.625	3.778	4.222	2.75	4.0
+sub-034	Kate Powell	27	female	right	Native speaker	bachelor	3.375	4.222	3.667	4.25	3.4
+sub-035	Mo Abbasi	43	male	right	Fluent	master	3.5	3.556	3.444	2.625	3.6
+sub-036	Helge Coroli Frandsen	42	male	right	Fluent	bachelor	4.375	4.222	3.667	1.875	4.2
+sub-037	Prescilla Pal	42	female	right	Fluent	master	2.5	3.889	3.889	2.625	3.0
+sub-038	Tina Gjørup Hansen	58	female	right	Intermediate	bachelor	2.375	3.667	4.0	3.25	3.3
+sub-039	Rasmus Kongsgaard Olsson	47	male	right	Fluent	phd	3.25	3.667	3.0	2.875	3.9
+sub-040	Dags Olsteins	30	male	left	Fluent	phd	2.375	3.444	4.111	2.125	4.6
+sub-041	Luyao Wang	30	female	right	Fluent	master	3.25	4.333	4.333	1.5	4.4
+sub-042	Pernille Zeuner	56	female	right	Native speaker	master	4.25	4.0	3.556	1.375	3.1
+sub-043	Tobias Piechowiak	44	male	right	Fluent	phd	2.75	3.0	3.444	3.375	3.2
+sub-044	Giorgio Alvazzi	25	male	right	Fluent	master	3.125	4.0	3.889	2.0	3.2
+sub-045	Pernille Schiolten	52	female	right	Fluent	bachelor	3.25	3.333	3.667	3.0	3.2
+sub-046	Joe Jensen	46	male	right	Fluent	phd	3.75	3.444	3.444	2.125	3.6
+sub-047	Mathias Povelsen	24	male	right	Intermediate	master	3.75	3.333	3.556	2.0	3.1
+sub-048	Tatiana Crucerescu	23	female	right	Fluent	master	3.75	4.667	4.333	2.5	4.0
+sub-049	Javier Alejandro Volpe	31	male	right	Fluent	ap	2.5	3.667	3.889	1.875	3.5
+sub-050	Brice Modeste	33	male	right	Fluent	bachelor	2.875	3.889	3.889	2.75	3.8
+sub-051	Nikita Ratchinsky	34	female	right	Native speaker	graduate_certificate	3.5	3.889	2.889	3.5	4.4
+sub-052	Oliver Olesen	32	male	right	Fluent	master	3.875	3.333	4.111	3.75	4.4
+sub-053	Caroline Sigsgaard	26	female	right	Native speaker	master	3.625	4.111	4.444	2.625	3.6
+sub-054	Diego Caviedes Nozal	36	male	right	Fluent	phd	4.25	3.667	3.778	2.125	3.6
+sub-055	Priyamvada Ranjan	38	female	left	Fluent	master	2.875	4.333	3.222	1.875	2.6
+sub-056	Fan Zhang	42	male	right	Fluent	master	3.0	3.0	3.444	2.625	3.5
+sub-057	Patricia Pedersen	43	female	right	Fluent	master	3.125	3.333	3.444	2.5	3.1
+sub-058	Linda Macelovag	34	female	right	Fluent	master	4.125	4.111	4.556	1.875	4.3

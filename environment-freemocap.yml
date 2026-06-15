@@ -1,0 +1,21 @@
+# Conda environment for FreeMoCap processor
+# Usage: conda env create -f environment-freemocap.yml
+name: affectai-freemocap
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  # Core project dependencies
+  - pandas>=2.1
+  - pydantic>=2.7
+  - pyyaml>=6.0
+  # Useful for video/mocap workflows
+  - opencv>=4.8
+  # Dev tools
+  - pytest>=8.0
+  - ruff>=0.5
+  # pip-only packages (not available on conda-forge)
+  - pip
+  - pip:
+    - freemocap>=1.3.0

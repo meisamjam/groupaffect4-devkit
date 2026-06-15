@@ -1,0 +1,105 @@
+# Tobii world-gaze alignment config for grp-13 session, task T1
+# Generated: 2026-04-10
+# Approach B: scene-video PnP using desk markers (+fixed ChArUco board)
+#
+# Scene videos available: P2, P4 only (P1 and P3 scene videos not present)
+# Gaze NDJSON: all P1-P4 (from BIDS TSV.gz via bids_tobii_tsv_to_ndjson.py)
+#   - timestamp_ticks = LSL time (seconds); use --ticks-per-second 1
+#
+# Run command:
+#   python tools/tobii_multi_glasses_world_align.py \
+#       --config configs/tobii_offline_world_align_grp12_T1.yaml \
+#       --output-dir "F:\processed_data\sub-01\ses-20260318_grp-13_run01\gaze_world_T1" \
+#       --ticks-per-second 1 \
+#       --ray-source gaze2d
+
+world:
+  coordinate_frame:
+    origin: fixed_7x5_board_center
+    axes:
+      x: right
+      y: back
+      z: up
+  aruco_dictionary: DICT_4X4_50
+  marker_map:
+    - id: 0
+      label: front_left_corner
+      corners_m:
+        - [-0.9250, -0.3750, 0.0000]
+        - [-0.8750, -0.3750, 0.0000]
+        - [-0.8750, -0.4250, 0.0000]
+        - [-0.9250, -0.4250, 0.0000]
+    - id: 1
+      label: front_right_corner
+      corners_m:
+        - [0.8750, -0.3750, 0.0000]
+        - [0.9250, -0.3750, 0.0000]
+        - [0.9250, -0.4250, 0.0000]
+        - [0.8750, -0.4250, 0.0000]
+    - id: 2
+      label: back_right_corner
+      corners_m:
+        - [0.8750, 0.4250, 0.0000]
+        - [0.9250, 0.4250, 0.0000]
+        - [0.9250, 0.3750, 0.0000]
+        - [0.8750, 0.3750, 0.0000]
+    - id: 3
+      label: back_left_corner
+      corners_m:
+        - [-0.9250, 0.4250, 0.0000]
+        - [-0.8750, 0.4250, 0.0000]
+        - [-0.8750, 0.3750, 0.0000]
+        - [-0.9250, 0.3750, 0.0000]
+    - id: 4
+      label: left_center
+      corners_m:
+        - [-0.9250, 0.0250, 0.0000]
+        - [-0.8750, 0.0250, 0.0000]
+        - [-0.8750, -0.0250, 0.0000]
+        - [-0.9250, -0.0250, 0.0000]
+    - id: 5
+      label: right_center
+      corners_m:
+        - [0.8750, 0.0250, 0.0000]
+        - [0.9250, 0.0250, 0.0000]
+        - [0.9250, -0.0250, 0.0000]
+        - [0.8750, -0.0250, 0.0000]
+
+desk:
+  width_m: 1.8000
+  depth_m: 0.8000
+  height_m: 0.7500
+
+# Only P2 and P4 have scene videos for this session.
+# P1 and P3 omitted — no scene video available.
+devices:
+  - id: tobii_P1
+    scene_video: "F:/processed_data/sub-01/ses-20260318_grp-13_run01/et/sub-01_ses-20260318_grp-13_run01_task-T1_run-01_acq-P1_tobii.mp4"
+    gaze_ndjson: "F:/processed_data/sub-01/ses-20260318_grp-13_run01/et/P1_task-T1_gaze.ndjson"
+    video_fps_override: null
+    # video_time_offset_s: adjust if scene-video and LSL clocks diverge
+    video_time_offset_s: 0.0
+    intrinsics:
+      # Tobii Glasses 3 scene-camera approximate intrinsics (1920x1080, ~82 deg HFOV)
+      # Refine with Tobii's own calibration file if available.
+      width: 1920
+      height: 1080
+      fx: 1300.0
+      fy: 1300.0
+      cx: 960.0
+      cy: 540.0
+      dist_coeffs: [0.0, 0.0, 0.0, 0.0, 0.0]
+
+  - id: tobii_P4
+    scene_video: "F:/processed_data/sub-01/ses-20260318_grp-13_run01/et/sub-01_ses-20260318_grp-13_run01_task-T1_run-01_acq-P4_tobii.mp4"
+    gaze_ndjson: "F:/processed_data/sub-01/ses-20260318_grp-13_run01/et/P4_task-T1_gaze.ndjson"
+    video_fps_override: null
+    video_time_offset_s: 0.0
+    intrinsics:
+      width: 1920
+      height: 1080
+      fx: 1300.0
+      fy: 1300.0
+      cx: 960.0
+      cy: 540.0
+      dist_coeffs: [0.0, 0.0, 0.0, 0.0, 0.0]

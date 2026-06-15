@@ -1,0 +1,900 @@
+%% icmi2026_label_augmentation.tex
+%% Target: 8-page ICMI/CSMI workshop paper.
+%%
+%% Compile:
+%%   pdflatex icmi2026_label_augmentation
+%%   bibtex   icmi2026_label_augmentation
+%%   pdflatex icmi2026_label_augmentation
+%%   pdflatex icmi2026_label_augmentation
+
+\documentclass[sigconf,review,anonymous]{acmart}
+
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{microtype}
+
+% Layout tuning: allow inter-word stretch of up to 3em before declaring
+% overfull (standard practice for citation-dense conference papers).
+\setlength\emergencystretch{3em}
+% Suppress underfull hbox warnings for short paragraph-ending lines.
+\hbadness=10000
+
+\acmConference[CSMI '26]{Workshop on Collective States in Multimodal Interaction (CSMI)}
+  {October 2026}{Naples, Italy}
+\acmYear{2026}
+\copyrightyear{2026}
+\settopmatter{printacmref=true}
+\pagestyle{plain}
+
+\definecolor{bestcol}{HTML}{1a6e1a}
+\newcommand{\best}[1]{\textbf{\textcolor{bestcol}{#1}}}
+
+\title{Personality-Weighted Label Augmentation for Physiological Affect Sensing
+in Small Collaborative Groups}
+
+\author{Anonymous Authors}
+\affiliation{\institution{Anonymous Institution}}
+\email{anon@example.com}
+
+\begin{document}
+
+\begin{abstract}
+Physiological affect sensing in naturalistic group interaction is limited less
+by sensor density than by label density: wearable devices produce thousands of
+time windows, while self-report labels are collected only a few times per
+session.
+This paper asks whether stable personality similarity can serve as a trust
+signal for pseudo-label augmentation in small collaborative groups.
+Using GroupAffect-4, a four-person collaborative dataset with wearable
+physiology, eye tracking, Big Five personality, and post-task VAD labels, we
+compare Gaussian-process, physiology-derived, and personality-mediated
+augmentation variants under a shared target-construction pipeline.
+An RBF-SVM with balanced midpoint-tertile labels reaches $0.495$ macro-F1 on
+the canonical known-team temporal holdout.
+Replacing GP confidence with BFI-44 cosine similarity as the pseudo-label
+trust weight improves macro-F1 to $0.526$, with the largest gains in Valence
+($+0.038$) and Dominance ($+0.050$).
+In a cross-subject LOSO stress test (no augmentation), aggregate macro-F1 is
+$0.320$ (V$=0.190$, A$=0.438$, D$=0.334$), showing a substantial transfer gap
+relative to the known-team protocol.
+However, strict session-isolated LOGO evaluation removes the augmentation
+benefit ($0.262$ vs. $0.266$ no augmentation), showing that personality
+weighting is a within-team augmentation mechanism rather than an unseen-group
+transfer solution.
+Across held-out sessions, AP1/AP2 differences are not significant against A0
+(paired Wilcoxon signed-rank, all $p>.2$).
+Exploratory post-block questionnaire correlations provide external validity:
+predicted arousal tracks engagement ($r=0.46$) and predicted valence tracks
+satisfaction ($r=0.39$).
+\end{abstract}
+
+\ccsdesc[500]{Computing methodologies~Supervised learning by classification}
+\ccsdesc[300]{Human-centered computing~Collaborative interaction}
+\ccsdesc[200]{Applied computing~Life and medical sciences}
+
+\keywords{label augmentation, physiological affect sensing, Big Five
+personality, VAD prediction, Gaussian Process, group interaction}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:intro}
+
+Wearable physiological sensors provide dense streams of electrodermal,
+cardiac, oculomotor, pupil, and movement signals, but affect labels remain
+sparse in naturalistic interaction.
+In collaborative group studies, participants can only be interrupted for
+self-report a few times per session.
+The result is a structural mismatch: thousands of physiological windows, but
+only a small number of labelled Valence--Arousal--Dominance (VAD) observations.
+
+The usual response is to interpolate labels over time or to train larger
+models on small labelled sets.
+Both strategies are fragile.
+Physiological affect is strongly person-specific, and the same arousal pattern
+can reflect different appraisals depending on personality, task role, and group
+context.
+We therefore test a simple hypothesis: in small collaborative groups, stable
+personality similarity may be a better trust signal for cross-person
+pseudo-labels than instantaneous physiological synchrony.
+
+This paper focuses on one question: when does personality-weighted
+pseudo-labelling help sparse-label physiological affect modelling, and when
+does it fail under stricter transfer protocols.
+The paper is intentionally scoped around low-capacity supervised models.
+We use the same RBF-SVM throughout the main comparison so that improvements can
+be attributed to pseudo-label construction rather than to architecture changes.
+This is important because the dataset has only 103 labelled training windows in
+the canonical split; high-capacity models can easily turn an augmentation
+comparison into a capacity comparison.
+
+The practical motivation is a known-team monitoring setting.
+A team completes multiple collaborative tasks, physiology is recorded
+continuously, and only sparse self-report is available.
+The system may use earlier-task data from that same team to support later-task
+prediction.
+This is not the same as predicting a wholly unseen group, and much of the
+paper is devoted to making that boundary explicit.
+Our contributions are:
+
+\begin{itemize}[leftmargin=1.2em,itemsep=1pt,topsep=2pt]
+  \item We define a leakage-aware augmentation taxonomy for sparse VAD labels
+  in small groups, separating known-team temporal holdout from LOSO
+  cross-subject and strict LOGO unseen-group stress tests.
+  \item We compare GP, EDA-derived, kNN-derived, and personality-mediated
+  augmentation variants under the same RBF-SVM base model.
+  \item We show that BFI-44 cosine similarity is the strongest trust weight in
+  the known-team setting ($0.526$ macro-F1), but does not improve strict LOGO.
+  \item We validate the resulting predictions against independent post-block
+  questionnaire items not used for training.
+\end{itemize}
+
+\begin{sloppypar}
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Dimensional affect and target construction.}
+Russell's circumplex model foregrounds Valence and Arousal
+\cite{russell1980circumplex}, while the PAD tradition adds Dominance as a
+third interpersonal dimension \cite{mehrabian1996pleasure}.
+The Self-Assessment Manikin (SAM) operationalises these axes as compact
+visual self-reports \cite{bradley1994sam}, but ratings are ordinal, tied,
+and often task-dependent.
+Fixed threshold binning produces class imbalance that biases classifiers
+\cite{he2009imbalanced,johnson2019classimbalance}; label distribution and
+ordinal learning approaches argue for preserving ordered uncertainty
+\cite{geng2016label,wen2023ordinal}, motivating our balanced
+midpoint-tertile target pipeline.
+
+\paragraph{Physiological and oculomotor affect recognition.}
+DEAP~\cite{koelstra2012deap}, DREAMER~\cite{katsigiannis2018dreamer},
+MAHNOB-HCI~\cite{soleymani2012mahnob}, WESAD~\cite{schmidt2018wesad},
+and ASCERTAIN~\cite{subramanian2018ascertain} established multimodal
+benchmarks; reviews confirm EDA, cardiac, and wearable signals are
+useful but sensitive to preprocessing and splitting
+protocol~\cite{shu2018review,ahmad2022survey,kreibig2010autonomic}.
+PPG and EDA processing follow NeuroKit2~\cite{makowski2021neurokit2} and
+cvxEDA~\cite{greco2016cvxeda} respectively.
+
+\paragraph{Social and group affect datasets.}
+IEMOCAP~\cite{busso2008iemocap} and RECOLA~\cite{ringeval2013introducing}
+introduced acted and remote dyadic affective interaction;
+K-EmoCon~\cite{park2020kemocon} added naturalistic dyadic debate with
+wearable sensors and multiple annotation perspectives.
+AMIGOS~\cite{mirandacorrea2021amigos} explicitly studies affect, personality,
+mood, and social context, but the group condition is shared media viewing
+rather than collaborative problem solving.
+Meeting and social-signal corpora such as AMI~\cite{mccowan2005ami},
+SALSA~\cite{alameda2015salsa}, MatchNMingle~\cite{cabrera2018matchnmingle},
+and ELEA~\cite{sanchez2012emergent} capture rich group behaviour and
+social signals.
+GroupAffect-4~\cite{groupaffect4} occupies the remaining intersection:
+structured four-person collaboration with per-person physiology, eye
+tracking, VAD self-report, and pre-session personality.
+
+\paragraph{Sparse labels, augmentation, and generalisation.}
+Small labelled physiological datasets make model selection unusually
+dependent on target quality and validation design.
+Time-series augmentation can improve wearable classifiers
+\cite{um2017data,iwana2021augmentation}, and contrastive methods such as
+TS-TCC~\cite{eldele2021tscc} learn representations from unlabelled
+segments.
+Semi-supervised consistency methods, from Mean
+Teacher~\cite{tarvainen2017mean} to FixMatch~\cite{sohn2020fixmatch},
+show that pseudo-labels are useful only when confidence is reliable;
+pseudo-labelling adds unlabelled examples above a confidence threshold
+\cite{lee2013pseudo}.
+Gaussian Processes provide uncertainty-aware interpolation in label
+space~\cite{rasmussen2006gaussian,atcheson2017gp}, complementing
+confidence-threshold approaches.
+Subject- and group-aware splits are essential for interpreting wearable
+affect model generalisation~\cite{ahmad2022survey,ventura2022validation}.
+
+\paragraph{Personality and affect dynamics.}
+The Big Five~\cite{john1999bigfive} is the dominant personality taxonomy;
+Neuroticism and Extraversion are primary affect predictors
+\cite{watson1992traits}.
+ASCERTAIN and AMIGOS show that personality shapes physiological affect
+responses~\cite{subramanian2018ascertain,mirandacorrea2021amigos}.
+\citet{meng2026moderating} used CTSEM to model how all five traits moderate
+VAD dynamics during real interaction, finding trait-specific moderation
+timescales that directly motivate our per-dimension personality trust
+weighting while also warning that trait effects are contextual and slow
+relative to 15-second windows.
+Emotional contagion suggests group members converge in affective state
+\cite{hatfield1993emotional}, supporting cross-person pseudo-label transfer
+weighted by personality similarity.
+
+\paragraph{Why personality and not only physiological synchrony?}
+Physiological synchrony is measured at the same timescale as the target
+windows, but it is ambiguous: co-fluctuation can reflect a shared external
+event, concurrent movement, or genuine affective convergence.
+Personality similarity is slower and more stable, providing a durable prior
+for weighting cross-person pseudo-labels when self-reports are sparse and
+uncertain.
+Our contribution is to operationalise BFI cosine similarity as a trust
+weight and to test its deployment boundary under known-team, LOSO, and
+strict LOGO protocols.
+\end{sloppypar}
+
+\section{Dataset and Targets}
+\label{sec:dataset}
+
+GroupAffect-4 contains 10 four-person collaborative sessions, with 39
+participants retained after data completeness checks \cite{groupaffect4}.
+Each session contains five sequential tasks: T0 passive rest, T1 information
+pooling, T2 negotiation, T3 ideation, and T4 public-goods interaction.
+After each task, participants reported Valence, Arousal, and Dominance using
+9-point SAM scales \cite{bradley1994sam}; T4 Dominance was not administered
+by design.
+Participants also completed the BFI-44 Big Five Inventory
+\cite{john1999bigfive} before the session.
+
+\paragraph{Physiology and eye-tracking inputs.}
+Table~\ref{tab:modalities} summarises the two wearable hardware platforms.
+All streams are time-stamped via LSL (Lab Streaming Layer) for cross-modal
+alignment and yield a 49-dimensional summary feature vector per 15-second
+window (mean, standard deviation, slope, and percentile statistics per
+channel).
+PPG is processed with NeuroKit2~\cite{makowski2021neurokit2}; EDA is
+decomposed into phasic (SCR) and tonic (SCL) components via
+cvxEDA~\cite{greco2016cvxeda}; gaze/pupil statistics follow standard
+fixation and pupillometry conventions~\cite{laeng2012pupillometry}.
+
+\begin{table}[t]
+\caption{Physiology and eye-tracking inputs (GroupAffect-4).}
+\label{tab:modalities}
+\centering
+\setlength{\tabcolsep}{3pt}
+\footnotesize
+\begin{tabular}{>{}l >{}l >{}l >{}l}
+\toprule
+\textbf{Modality} & \textbf{Device} & \textbf{Rate} & \textbf{Features} \\
+\midrule
+PPG        & EmotiBit & $\sim$25\,Hz & HR, RMSSD, SDNN, amp. \\
+EDA        & EmotiBit & $\sim$25\,Hz & SCL/SCR, phasic, tonic \\
+Skin temp. & EmotiBit & $\sim$25\,Hz & Mean, slope \\
+IMU        & EmotiBit & $\sim$25\,Hz & Accel.~mag., movement \\
+Gaze       & Tobii G3 & 40--60\,Hz   & Fix.~rate, saccade \\
+Pupil      & Tobii G3 & 40--60\,Hz   & Mean diam., dilation var. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+We use 15-second windows with 50\% overlap.
+The canonical split is a known-team temporal holdout:
+train on T0+T1 ($N=103$ windows), validate on T2 ($N=78$), and test on T3
+($N=65$).
+This design keeps all participants represented in every split while preserving
+task order.
+Sliding 15-second windows with 50\% overlap yield 292 labelled windows and
+8{,}221 unlabelled windows across between-task intervals.
+We also report LOSO and LOGO stress tests for cross-person and cross-group
+generalisation.
+All main results use macro-F1 per VAD dimension and report the three
+dimensions separately.
+The mean score is useful for ranking variants, but it can hide the main
+scientific pattern: Valence and Dominance benefit most from personality
+weighting, while Arousal depends more on physiological timescale and temporal
+proximity to self-report.
+
+\paragraph{Target construction.}
+Raw SAM scores are converted into Low, Mid, and High classes using midpoint
+tertile thresholds fitted on training data only.
+Boundaries are set at midpoints between integer response values.
+This keeps tied Likert clusters in the same class.
+Per-dimension inverse-frequency weights correct residual imbalance.
+This target pipeline replaces a fixed-threshold baseline that inflated
+Valence F1 when the T3 test set contained no Low-valence examples.
+The same fitted thresholds are used to discretise GP posterior moments for
+augmented windows, so hard labels and pseudo-labels live in the same class
+space.
+
+\subsection{Why Target Construction Matters}
+\label{sec:target_construction}
+
+The label pipeline is part of the contribution because augmentation quality
+cannot be evaluated independently of target quality.
+The original 1--9 SAM responses are ordinal, tied, and task-dependent.
+For example, T3 ideation contains many positive-valence reports; fixed
+thresholds such as Low $\leq 3$, Mid $=4$--$6$, and High $\geq 7$ can remove
+one class from the test fold.
+When that happens, macro-F1 is no longer a three-class metric even if the code
+reports a single number.
+
+Balanced midpoint-tertile thresholds avoid this failure mode.
+The split points are fitted on training labels only, then moved to midpoints
+between integer response values so that all tied Likert responses stay in the
+same class.
+This gives a small but honest benchmark: the SVM baseline becomes stronger
+because class semantics match the task distribution, while the MLP no longer
+benefits from silent class collapse.
+All augmentation variants in this paper are evaluated after this correction.
+
+\begin{table}[t]
+\caption{Label-pipeline ablation motivating the shared target construction.
+Values are T3 macro-F1 for an MLP without augmentation.}
+\label{tab:target_ablation}
+\centering
+\setlength{\tabcolsep}{4pt}
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Label pipeline} & \textbf{V} & \textbf{A} & \textbf{D} \\
+\midrule
+Fixed thresholds, no weights & 0.575 & 0.516 & 0.338 \\
+Balanced tertile, no weights & 0.372 & 0.443 & 0.429 \\
+Full target pipeline         & 0.405 & 0.464 & 0.495 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Canonical benchmark setup used throughout this paper.}
+\label{tab:setup}
+\centering
+\setlength{\tabcolsep}{4pt}
+\small
+\begin{tabular}{ll}
+\toprule
+\textbf{Component} & \textbf{Definition} \\
+\midrule
+Dataset & GroupAffect-4, 39 participants, 10 groups \\
+Signals & Gaze, pupil, EDA, PPG, skin temp., IMU \\
+Features & 49 physiology/eye-tracking summary features \\
+Labels & Balanced midpoint-tertile VAD classes \\
+Train/val/test & T0+T1 / T2 / T3 \\
+Base model & RBF-SVM, $C=1$, balanced class weights \\
+Metric & Macro-F1 per VAD dimension and mean \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Deployment Regimes}
+\label{sec:deployment}
+
+We distinguish three regimes because ``generalisation'' has different meanings
+in group affect sensing.
+\textbf{Known-team temporal holdout} asks whether earlier observations from a
+team can help predict that same team's later task windows.
+This is realistic for longitudinal team-monitoring systems and is the primary
+setting for AP1.
+\textbf{LOSO} asks whether models transfer to an unseen participant within the
+same task family.
+\textbf{LOGO} asks whether models transfer to an entirely unseen group, where
+all members, baselines, and interaction dynamics are absent from training.
+The last regime is much harder and should not be conflated with the first.
+
+This separation is important for personality-based augmentation.
+BFI-44 is collected before the session, so the personality similarity weight is
+not label leakage.
+However, a personality weight applied to a pseudo-label does not make the
+pseudo-label itself automatically leakage-free.
+The strict LOGO experiment therefore regenerates the pool while excluding the
+held-out group entirely.
+
+\section{Augmentation Methods}
+\label{sec:methods}
+
+All augmentation variants use the same SVM base model.
+Unlabelled windows are pseudo-labelled and assigned sample weights; test
+evaluation always uses ground-truth SAM-derived labels only.
+Let $\mathcal{D}_{L}=\{(\mathbf{x}_i,y_i,w_i=1)\}$ denote labelled training
+windows and $\mathcal{D}_{U}=\{(\mathbf{x}_u,\hat{y}_u,\alpha_u)\}$ denote
+accepted pseudo-labelled windows.
+The SVM is trained on
+\begin{equation}
+  \mathcal{D}_{aug} = \mathcal{D}_{L} \cup \mathcal{D}_{U},
+\end{equation}
+with sample weight $\alpha_u \in [0,1]$ for pseudo-labelled examples.
+For AP1, $\alpha_u$ is the BFI similarity weight; for AP2 it is the product of
+BFI similarity and GP posterior confidence.
+No test labels are used in pseudo-label generation.
+
+\paragraph{GP pseudo-labels.}
+For each participant and VAD dimension, we fit an Ornstein--Uhlenbeck GP to
+task-level SAM observations.
+The posterior over the 1--9 SAM scale is integrated across the
+training-fitted midpoint thresholds to produce a three-class soft label.
+For the SVM, the pseudo-label class is the posterior argmax and the
+posterior confidence becomes a sample weight.
+Threshold alignment is critical: the GP posterior is first expressed on the
+original 1--9 SAM scale and only then integrated over the training-fitted
+Low/Mid/High thresholds.
+Using stale thresholds from a different target pipeline can invert the effect
+of augmentation because the pseudo-label class prior no longer matches the
+supervised labels.
+
+\paragraph{Physiology-derived arousal labels.}
+Because Arousal GP calibration is weak, we test two alternatives:
+EDA Ridge regression and kNN labels in the full 49-dimensional feature space.
+The EDA-only approach regresses toward the mean; kNN improves leave-one-out
+arousal accuracy but still introduces noisy decision-boundary samples.
+
+\paragraph{Personality trust weights.}
+For participant $i$ in group $G$, we compute BFI cosine similarity to the
+other group members:
+\begin{equation}
+  \mathrm{BFI\_sim}_i =
+  \frac{1}{|G|-1}\sum_{j \neq i}
+  \frac{\mathbf{b}_i \cdot \mathbf{b}_j}{\|\mathbf{b}_i\|\|\mathbf{b}_j\|}.
+\end{equation}
+AP1 uses $\mathrm{BFI\_sim}_i$ as the pseudo-label trust weight.
+AP2 multiplies this personality weight by GP posterior confidence.
+The BFI weight itself is leakage-free because personality is collected before
+the session, but the pseudo-label class inherits whatever information was used
+to generate the GP pool.
+
+\paragraph{Leakage taxonomy.}
+Scenario 1 is the known-team temporal holdout: the pool is filtered to
+training tasks, but pre-generated GP parameters may encode mild distributional
+information from the full dataset.
+Scenario 2 is session-isolated LOGO: the held-out session is excluded from
+pool generation, BFI maps, and parameter estimation.
+Only Scenario 2 tests unseen-group deployment.
+
+\paragraph{Pool filtering.}
+Pool windows are filtered by task and source self-report index.
+For the known-team temporal split, T3 labels are excluded from augmentation
+because T3 is the test task.
+For LOGO, all windows from the held-out group are removed before GP fitting,
+BFI-map construction, and pseudo-label acceptance.
+This makes LOGO a stricter test than simply training on non-test labelled
+windows while leaving the held-out group's unlabelled pool in the augmentation
+set.
+
+\begin{table}[t]
+\caption{Augmentation variants. All use the same RBF-SVM and target pipeline.}
+\label{tab:variant_defs}
+\centering
+\setlength{\tabcolsep}{3pt}
+\small
+\begin{tabular}{l>{\raggedright\arraybackslash}p{0.60\columnwidth}}
+\toprule
+\textbf{Variant} & \textbf{Pseudo-label / weight rule} \\
+\midrule
+A0 & No augmentation; labelled T0+T1 windows only. \\
+A1 & GP pseudo-labels for Valence and Dominance only. \\
+A2 & GP pseudo-labels for all VAD dimensions. \\
+A3 & EDA arousal labels + GP Valence/Dominance. \\
+A5 & kNN arousal labels in 49-d feature space + GP V/D. \\
+A6 & BFI-weighted GP V/D + BFI-weighted kNN arousal. \\
+AP1 & GP class argmax, BFI cosine similarity as trust weight. \\
+AP2 & GP class argmax, BFI similarity multiplied by GP confidence. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Why Personality Should Weight Trust}
+\label{sec:why_bfi}
+
+The AP1 design deliberately avoids using personality as a high-capacity neural
+conditioning input.
+At $N=103$, adding trait-conditioned projection matrices gives the model more
+ways to overfit than the data can support.
+Instead, personality plays a weaker role: it adjusts how much a pseudo-label
+should be trusted.
+
+This distinction matters conceptually.
+Personality is not expected to predict the exact affective state of a
+15-second physiological window.
+It is expected to indicate whether two group members are likely to appraise the
+same collaborative situation similarly.
+Agreeableness, Extraversion, and Neuroticism can shape how participants
+experience cooperation, conflict, and social pressure, but those effects are
+slow and contextual.
+Using BFI as a sample weight respects that timescale.
+
+The hypothesis is therefore not ``personality predicts physiology.''
+The hypothesis is: when pseudo-labels are propagated through a group, labels
+coming from personality-similar peers are more trustworthy than labels coming
+from dissimilar peers.
+AP1 tests that hypothesis directly.
+
+\paragraph{Capacity control.}
+The SVM does not receive BFI features directly.
+This prevents the model from memorising participant or group-level trait
+patterns.
+Personality only enters through sample weights on pseudo-labelled windows,
+which constrains it to a calibration role.
+This capacity control is one reason the AP1 result is interpretable despite
+the small labelled set.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Known-Team Augmentation}
+\label{sec:known_team}
+
+Table~\ref{tab:svm_aug} reports the central augmentation comparison.
+The no-augmentation SVM reaches $0.495$ mean macro-F1.
+GP augmentation improves modestly, especially when all dimensions are enabled.
+EDA-derived arousal labels hurt performance, and lowering the confidence
+threshold worsens the effect.
+Personality-mediated augmentation performs best: AP1 reaches $0.526$, with
+Valence and Dominance gaining most.
+
+\begin{table}[t]
+\caption{SVM augmentation variants on the canonical T3 test split.}
+\label{tab:svm_aug}
+\centering
+\setlength{\tabcolsep}{4pt}
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Variant} & \textbf{V} & \textbf{A} & \textbf{D} \\
+\midrule
+A0: No aug              & 0.570 & 0.530 & 0.385 \\
+A1: GP V/D only         & 0.592 & 0.530 & 0.406 \\
+A2: GP all dims         & 0.592 & \best{0.546} & 0.406 \\
+A3: EDA + GP V/D        & 0.458 & 0.530 & 0.430 \\
+A5: kNN arousal + GP V/D& 0.592 & 0.521 & 0.406 \\
+A6: BFI$\times$GP + kNN & 0.593 & 0.535 & 0.431 \\
+\midrule
+\best{AP1: BFI-only}    & \best{0.608} & 0.535 & \best{0.435} \\
+AP2: BFI$\times$GP      & 0.593 & 0.544 & 0.431 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The pattern supports a dimension-specific interpretation.
+Valence and Dominance are appraisal-heavy dimensions whose labels are more
+likely to transfer among personality-similar participants.
+Arousal is phasic and event-driven; it benefits more from temporal proximity
+to self-report than from personality similarity.
+In mean macro-F1, AP1 improves over no augmentation by $+0.031$.
+The gain is not large, but it is concentrated where the mechanism predicts:
+Valence improves by $+0.038$ and Dominance by $+0.050$, while Arousal changes
+little.
+This makes AP1 a calibrated low-label improvement rather than a broad claim
+that personality solves physiological affect recognition.
+
+\subsection{Physiological Alternatives for Arousal}
+\label{sec:arousal_alternatives}
+
+Arousal is the hardest dimension for personality-weighted augmentation because
+its short-timescale physiology is not primarily trait-like.
+EDA and PPG respond to task events, movement, cognitive demand, and social
+pressure, often within tens of seconds.
+We therefore tested physiology-derived pseudo-labels as alternatives to GP
+arousal.
+
+The EDA-only regression path is interpretable but too compressed.
+Ridge regression predicts near the mean of the SAM scale, which causes most
+pseudo-labels to fall into the Mid class after binning.
+Relaxing the confidence threshold accepts more windows but increases noise,
+leading to the worst result in the augmentation table.
+The kNN arousal path performs better because it uses the full 49-dimensional
+feature space, including IMU, PPG, gaze, and pupil features.
+However, kNN still fails to beat the GP arousal variant on the T3 test split.
+This suggests that temporal proximity to self-report remains more reliable
+than feature-space similarity for arousal at this label density.
+A separate preprocessing analysis of the same benchmark reports that smoothing
+EDA and PPG can stabilise arousal estimates, while preserving most valence
+signal. In this paper, the augmentation finding is narrower: personality
+weighting is most reliable for appraisal-heavy dimensions (Valence and
+Dominance), while Arousal remains primarily constrained by temporal
+proximity and signal quality.
+
+\subsection{Personality Correlations as Mechanistic Support}
+\label{sec:bfi_support}
+
+Participant-level BFI correlations provide a useful sanity check for the AP1
+mechanism.
+Agreeableness correlates positively with both Valence and Arousal, while
+Neuroticism correlates negatively with Arousal.
+These correlations do not prove that BFI should be a direct model input; in
+fact, direct BFI conditioning overfits.
+They do support the weaker AP1 claim that personality similarity carries
+information about affective appraisal in collaborative tasks.
+
+\begin{table}[t]
+\caption{Participant-level Spearman correlations between BFI traits and VAD.}
+\label{tab:bfi_corr_short}
+\centering
+\setlength{\tabcolsep}{4pt}
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Trait} & \textbf{Valence} & \textbf{Arousal} & \textbf{Dominance} \\
+\midrule
+Extraversion      & $+0.075$ & $+0.062$ & $-0.065$ \\
+Agreeableness     & $+0.416^{**}$ & $+0.423^{**}$ & $+0.269$ \\
+Conscientiousness & $+0.234$ & $+0.304$ & $+0.108$ \\
+Neuroticism       & $-0.049$ & $-0.349^{*}$ & $-0.058$ \\
+Openness          & $+0.162$ & $+0.196$ & $+0.106$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Strict Session Isolation}
+\label{sec:logo}
+
+Table~\ref{tab:logo} shows that the AP1 gain is scoped.
+When the held-out group is excluded from all pool generation, augmentation no
+longer improves performance.
+This does not invalidate AP1; it identifies its deployment regime.
+Personality weighting is useful for a known team with earlier-task data, not a
+general cross-group transfer mechanism at 10-group scale.
+
+The LOGO result is also a warning about small group datasets.
+Adding pseudo-labelled windows from other groups increases data volume, but it
+does not necessarily increase relevant information for a new group.
+Groups develop idiosyncratic baselines, conversational rhythms, and shared
+task interpretations.
+At 10 groups, personality similarity across groups is too weak a bridge to
+overcome those differences.
+
+\begin{table}[t]
+\caption{Session-isolated LOGO augmentation. Pool and BFI maps exclude the
+held-out session.}
+\label{tab:logo}
+\centering
+\setlength{\tabcolsep}{4pt}
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Variant} & \textbf{V} & \textbf{A} & \textbf{D} \\
+\midrule
+A0: No aug     & 0.235 & 0.307 & 0.254 \\
+AP1: BFI-only  & 0.224 & 0.279 & 0.284 \\
+A2: GP all dims& 0.218 & 0.291 & 0.278 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{LOSO Cross-Subject Stress Test}
+\label{sec:loso}
+
+To separate cross-person from cross-group transfer, we additionally report a
+LOSO stress test under the same balanced target-construction pipeline.
+Each fold holds out one participant's T3 windows and aggregates results across
+the 32 participants with T3 labels.
+Following strict cross-subject isolation, no pseudo-label augmentation is used
+in this stress test.
+Aggregate macro-F1 is $0.320$ (V$=0.190$, A$=0.438$, D$=0.334$), confirming a
+substantial transfer gap relative to known-team temporal holdout.
+
+\begin{table}[t]
+\caption{LOSO cross-subject stress test (no augmentation).
+Aggregate over 32 held-out participants with T3 labels.}
+\label{tab:loso}
+\centering
+\setlength{\tabcolsep}{4pt}
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Variant} & \textbf{V} & \textbf{A} & \textbf{D} \\
+\midrule
+A0: LOSO no aug & 0.190 & 0.438 & 0.334 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Uncertainty and Significance}
+\label{sec:uncertainty}
+
+The canonical T0+T1$\rightarrow$T3 comparison is a fixed split with
+deterministic SVM training, so Table~\ref{tab:svm_aug} reports point
+estimates rather than seed variance.
+For protocol-level uncertainty, LOGO is evaluated across 10 held-out
+sessions; mean macro-F1 is $0.266$ for A0, $0.262$ for AP1, and $0.262$ for
+A2.
+Paired Wilcoxon signed-rank tests on per-session mean macro-F1 show no
+significant AP1/A2 difference against A0 (all $p>.2$), supporting the claim
+that augmentation does not improve unseen-group transfer.
+
+\subsection{External Questionnaire Validation}
+\label{sec:questionnaire}
+
+We aggregate SVM predictions to participant-by-task level and correlate them
+with post-block questionnaire items not used in training.
+Predicted Arousal correlates most strongly with T3 engagement ($r=0.46$),
+while predicted Valence correlates with T3 satisfaction ($r=0.39$).
+These correlations support the psychological validity of the target pipeline
+and augmentation recipes.
+
+The questionnaire results are important because the model is trained only on
+VAD self-reports.
+Engagement and satisfaction are independent constructs collected after the
+task, so their correlations with predicted Arousal and Valence indicate that
+the physiological predictions are not merely reproducing arbitrary label
+boundaries.
+The absence of strong Dominance correlations is also consistent with the
+classification results: Dominance is the weakest VAD dimension and may require
+relational features such as speaking turns, gaze-to-person, and posture.
+Because four questionnaire associations are tested on small samples, these
+results are exploratory and should be interpreted with uncorrected
+multiple-comparison risk in mind.
+
+\begin{table}[t]
+\caption{Exploratory external validation against post-block questionnaire
+items.}
+\label{tab:q}
+\centering
+\setlength{\tabcolsep}{3pt}
+\footnotesize
+\begin{tabular}{@{}llllcc@{}}
+\toprule
+\textbf{Task} & \textbf{Pred.} & \textbf{Q item} & \textbf{$r$} & \textbf{$n$} \\
+\midrule
+T1 & Valence & overall valence & $+0.41$ & 33 \\
+T3 & Valence & satisfaction    & $+0.39$ & 31 \\
+T3 & Arousal & engagement      & $+0.46$ & 32 \\
+T3 & Arousal & mental demand   & $+0.17$ & 31 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Mechanistic Interpretation}
+\label{sec:mechanism}
+
+The augmentation results are easiest to interpret by VAD dimension rather than
+by mean F1 alone.
+Personality similarity should help most when the affective label depends on
+stable appraisal tendencies and least when the label reflects short-lived
+physiological activation.
+This is exactly the pattern observed in Table~\ref{tab:svm_aug}.
+
+\paragraph{Valence.}
+Valence improves most reliably under AP1.
+In collaborative tasks, positive or negative appraisal depends not only on
+physiological activation but also on how a participant interprets cooperation,
+agreement, conflict, and task progress.
+Those interpretations plausibly relate to trait-level social orientation.
+AP1 does not claim that agreeable participants are always high-valence; rather,
+it gives more weight to pseudo-labels from peers whose trait profile suggests
+similar appraisal of the same group event.
+
+\paragraph{Arousal.}
+Arousal is the counterexample that keeps the claim honest.
+The strongest AP1 gains are not in Arousal because the underlying signal is
+more phasic and event-driven.
+EDA and PPG can change quickly after cognitive demand, surprise, negotiation
+pressure, movement, or public outcome reveal.
+These changes are better captured by temporal proximity to self-report and by
+preprocessing that respects autonomic timescales than by trait similarity.
+This explains why GP-all-dimensions has the highest Arousal score in
+Table~\ref{tab:svm_aug}, while AP1 is strongest on Valence and Dominance.
+
+\paragraph{Dominance.}
+Dominance is the most socially relational dimension.
+It reflects perceived control, influence, and agency during group interaction.
+AP1 improves Dominance because personality-similar peers may provide more
+credible pseudo-labels for stable appraisal of control.
+At the same time, Dominance remains hard: T4 Dominance is not administered,
+and physiology-only features lack direct measures of who speaks, who is
+addressed, who is looked at, and who controls the task outcome.
+This motivates future integration of audio, gaze-to-person, posture, and turn
+structure.
+
+\paragraph{Why AP2 does not dominate AP1.}
+AP2 multiplies BFI similarity by GP confidence, but this extra gate slightly
+reduces the mean score relative to AP1.
+The likely reason is that the confidence signal is too sparse in this
+low-label setting.
+GP confidence removes uncertain windows, but some uncertainty is useful:
+pseudo-label augmentation needs enough diverse windows to regularise the SVM
+decision boundary.
+AP1 keeps the stable personality trust signal while admitting a broader pool.
+
+\section{Recommended Use}
+\label{sec:recommended}
+
+Table~\ref{tab:recipes} summarises when each augmentation recipe should be
+used.
+The key point is that AP1 is not a universal default.
+It is appropriate when earlier-task data from the same team is available and
+the target is a later task from that team.
+For unseen-group deployment, the recommended baseline is no augmentation or
+strictly session-isolated augmentation.
+
+\begin{table}[t]
+\caption{Recommended label-augmentation recipes and intended scope.}
+\label{tab:recipes}
+\centering
+\setlength{\tabcolsep}{3pt}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.16\columnwidth}>{\raggedright\arraybackslash}p{0.29\columnwidth}>{\raggedright\arraybackslash}p{0.45\columnwidth}}
+\toprule
+\textbf{Recipe} & \textbf{Use case} & \textbf{Interpretation} \\
+\midrule
+A0 & Conservative baseline & No pseudo-label assumptions \\
+A2 & GP temporal labels & Affect continuity in known teams \\
+AP1 & Known-team augmentation & BFI-weighted pseudo-label trust \\
+AP2 & Conservative AP1 & BFI trust gated by GP confidence \\
+LOGO A0 & New-group baseline & Strict unseen-group deployment \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Checks required before claiming leakage-aware augmentation.}
+\label{tab:checks}
+\centering
+\setlength{\tabcolsep}{3pt}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.34\columnwidth}>{\raggedright\arraybackslash}p{0.54\columnwidth}}
+\toprule
+\textbf{Check} & \textbf{Why it matters} \\
+\midrule
+Train-fitted thresholds & Keeps hard and pseudo-labels in one class space. \\
+Exclude test-task labels & Prevents direct temporal label leakage. \\
+Regenerate LOGO pool & Removes held-out group from all augmentation signals. \\
+Keep BFI out of SVM features & Preserves personality as trust, not identity. \\
+Report V/A/D separately & Reveals that AP1 mainly helps V and D. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{Personality is better as a trust weight than as a direct input.}
+Direct BFI conditioning overfits at the current label density, whereas AP1
+uses BFI only to weight pseudo-label trust.
+This is a lower-capacity role for personality and better matched to $N=103$.
+
+\paragraph{Known-team benefit is still useful.}
+Many practical group-sensing deployments observe the same team over multiple
+tasks or sessions.
+In that setting, AP1 is legitimate: it uses pre-session personality and
+earlier-task unlabelled windows to smooth the team's affect trajectory.
+The important wording is ``same team.''
+The AP1 result should not be sold as generalisation to strangers; it is a
+within-team calibration method for sparse labels.
+That narrower claim is still useful because many collaborative systems care
+about monitoring an ongoing team rather than classifying arbitrary new groups.
+
+\paragraph{Unseen-group transfer remains unsolved.}
+LOGO performance remains far below known-team performance.
+This gap likely reflects group-specific baselines, interaction dynamics, and
+role structures not captured by per-person physiology and BFI alone.
+For new groups, a better strategy may be rapid calibration: collect one or two
+short self-report anchors from the group, fit group-specific baselines, and
+then apply AP1 only after the group has entered the known-team regime.
+This hypothesis is not tested here, but it follows directly from the gap
+between canonical temporal holdout and strict LOGO.
+
+\paragraph{The SVM is a feature, not a weakness.}
+The strongest results in this paper use an RBF-SVM rather than a neural model.
+For $N=103$, this is appropriate.
+The purpose is not to demonstrate architectural novelty; it is to isolate
+whether a pseudo-label trust signal is useful when model capacity is held
+constant.
+The SVM makes the augmentation comparison more transparent.
+
+\section{Limitations}
+\label{sec:limitations}
+
+The dataset contains only 10 groups, so strict LOGO estimates have high fold
+variance.
+The canonical AP1 comparison should be interpreted as a temporal known-team
+result, not as unseen-group deployment.
+Future work should add clustered confidence intervals, evaluate repeated
+sessions per group, and test calibration strategies for new teams.
+The reported AP1 improvement is small in absolute terms and should be treated
+as a calibrated low-label gain rather than a large general-purpose improvement.
+Because windows overlap within participants and groups, future statistical
+tests should resample at participant or session level rather than assuming
+independent windows.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+Personality-weighted label augmentation improves physiological VAD prediction
+when the deployment setting is a known team with sparse earlier-task labels.
+BFI-44 cosine similarity is most useful as a pseudo-label trust weight,
+especially for Valence and Dominance, but it does not solve unseen-group
+transfer.
+This boundary is the contribution: personality helps label augmentation under
+the right social and evaluation regime.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{icmi2026_refs}
+
+\end{document}

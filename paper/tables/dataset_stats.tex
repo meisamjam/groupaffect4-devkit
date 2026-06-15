@@ -1,0 +1,57 @@
+%% Table: dataset_stats.tex
+%% \input{tables/dataset_stats} from main.tex
+%%
+%% This table follows the audit in docs/data_audit.md. It does NOT use the
+%% inflated "13 sessions / 19 hours" headline that appears in the ICMI draft.
+%% Numbers below the per-modality coverage line are derived from QC artifacts
+%% and remain TBD until the QC pipelines are re-run on the final session set.
+
+\begin{table}[t]
+  \centering
+  \caption{AffectAI dataset statistics, reported by completeness tier.
+    Tier 1 sessions are fully complete across all configured modalities for
+    all four participants; Tier 2 has one minor documented gap;
+    Tier 3 has multiple documented gaps and is excluded from the headline
+    worked example in \cref{sec:worked}.
+    Modality coverage is the percentage of sessions in the indicated tier
+    set with usable data for that modality.
+    QC metrics marked TBD will be filled once pipeline re-runs are
+    complete; the underlying tools are part of this release.}
+  \label{tab:stats}
+  \small
+  \begin{tabular}{lr}
+    \toprule
+    \textbf{Metric} & \textbf{Value} \\
+    \midrule
+    Total final-phase sessions                          & TBD \\
+    \quad of which Tier 1 (fully complete)              & TBD \\
+    \quad Tier 2 (nearly complete)                      & TBD \\
+    \quad Tier 3 (significant documented gaps)          & TBD \\
+    Unique groups                                       & TBD \\
+    Unique participants                                 & TBD \\
+    Total recorded duration                             & $\sim$TBD~h \\
+    \midrule
+    \multicolumn{2}{l}{\textit{Per-modality coverage (\% of Tier~1 $\cup$ Tier~2 sessions)}} \\
+    \midrule
+    EmotiBit (all four participants)                    & TBD\,\% \\
+    Tobii 2D gaze (all four participants)               & TBD\,\% \\
+    DPA close-talk audio (all four participants)        & TBD\,\% \\
+    Room audio                                          & TBD\,\% \\
+    VAD probes (all four participants, $\geq 90\%$ response rate)
+                                                        & TBD\,\% \\
+    BFI-44 personality (all four participants matched)  & TBD\,\% \\
+    Conversation transcript                             & TBD\,\% \\
+    \midrule
+    \multicolumn{2}{l}{\textit{Synchronisation quality (Tier~1 $\cup$ Tier~2)}} \\
+    \midrule
+    Median cross-device LSL offset                      & TBD\,ms \\
+    99\textsuperscript{th}-percentile LSL offset        & TBD\,ms \\
+    Median frame-drop rate (close-talk audio)           & TBD\,\% \\
+    \midrule
+    \multicolumn{2}{l}{\textit{Transcript quality (if manually checked)}} \\
+    \midrule
+    Transcript QC status                                & TBD \\
+    WER / diarisation note, if available                & TBD \\
+    \bottomrule
+  \end{tabular}
+\end{table}
